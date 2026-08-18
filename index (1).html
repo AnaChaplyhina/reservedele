@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reservedele · Power Ejby</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --green-dark:#082600; --green:#008545; --red:#E62B27;
+  --beige:#F4F4EF; --beige-dark:#E8EAE3;
+  --ink:#082600; --muted:#66705F; --line:#D7DBD0; --line-soft:#E4E7DE; --r:4px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--beige);color:var(--ink);
+  font:400 15px/1.5 Raleway,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1060px;margin:0 auto;padding:0 22px}
+
+header{background:var(--green-dark);color:var(--beige)}
+.hrow{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;padding:22px 0 0}
+.kicker{font:500 10px/1 Raleway;letter-spacing:.24em;text-transform:uppercase;opacity:.55;margin-bottom:7px}
+.hname{font:300 23px/1 Raleway}
+.hright{display:flex;align-items:center;gap:14px;flex:none}
+.langs{display:flex;gap:1px}
+.langs button{background:none;border:1px solid rgba(244,244,239,.26);color:var(--beige);
+  font:500 11px/1 Raleway;letter-spacing:.12em;padding:8px 12px;cursor:pointer;border-radius:var(--r)}
+.langs button[aria-pressed=true]{background:var(--beige);color:var(--green-dark);border-color:var(--beige)}
+.adm{background:none;border:1px solid rgba(244,244,239,.26);color:var(--beige);
+  font:500 11px/1 Raleway;letter-spacing:.1em;padding:8px 12px;border-radius:var(--r);cursor:pointer;white-space:nowrap}
+.adm.on{background:var(--green);border-color:var(--green)}
+nav{display:flex;gap:24px;margin-top:22px;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{background:none;border:0;border-bottom:2px solid transparent;color:var(--beige);
+  font:400 14px/1 Raleway;padding:0 0 13px;cursor:pointer;opacity:.55;white-space:nowrap}
+nav button[aria-selected=true]{opacity:1;border-bottom-color:var(--green)}
+nav button[hidden]{display:none}
+.chip{display:inline-block;min-width:17px;height:17px;line-height:17px;text-align:center;background:var(--red);
+  color:#fff;font:600 10px Raleway;border-radius:9px;padding:0 5px;margin-left:6px}
+
+main{padding:30px 0 90px}
+.view[hidden]{display:none}
+h2{font:300 27px/1.2 Raleway;letter-spacing:-.01em;margin:0 0 5px}
+.sub{color:var(--muted);font-size:13.5px;margin:0 0 24px;max-width:64ch}
+.lab{display:block;font:500 10px/1 Raleway;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.sec{display:flex;align-items:baseline;gap:12px;margin:32px 0 14px;border-left:2px solid var(--green);padding-left:11px}
+.sec h3{font:500 13px/1 Raleway;letter-spacing:.09em;text-transform:uppercase;margin:0}
+.sec .hint{font-size:12px;color:var(--muted)}
+.sec .sp{margin-left:auto}
+.panel{background:#fff;border:1px solid var(--line-soft);border-radius:var(--r);padding:22px}
+.panel.flush{padding:4px 18px}
+.split{display:grid;grid-template-columns:1.1fr .9fr;gap:22px;align-items:start}
+
+input,select,textarea{width:100%;font:400 15px Raleway;color:var(--ink);background:#fff;
+  border:1px solid var(--line);border-radius:var(--r);padding:11px 12px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(0,133,69,.13)}
+.f{margin-bottom:17px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.unit{float:right;font:400 11px Raleway;letter-spacing:0;text-transform:none;color:var(--muted)}
+.btn{background:var(--green-dark);color:var(--beige);border:0;border-radius:var(--r);
+  font:500 15px Raleway;padding:14px 18px;cursor:pointer;width:100%}
+.btn:hover{background:#0d3a02}
+.btn.alt{background:var(--beige-dark);color:var(--ink)}
+.btn.sm{width:auto;font-size:12.5px;padding:8px 13px}
+.txt{background:none;border:0;color:var(--green);font:500 12.5px Raleway;cursor:pointer;
+  padding:3px 0;text-decoration:underline;text-underline-offset:3px}
+
+.combo{position:relative}
+.combo input[aria-expanded=true]{border-radius:var(--r) var(--r) 0 0}
+.opts{position:absolute;z-index:30;left:0;right:0;top:100%;margin:0;padding:4px 0;list-style:none;background:#fff;
+  border:1px solid var(--green);border-top:0;border-radius:0 0 var(--r) var(--r);max-height:270px;overflow:auto;
+  box-shadow:0 8px 22px rgba(8,38,0,.09)}
+.opts li{padding:10px 12px;cursor:pointer;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.opts li[aria-selected=true]{background:var(--beige)}
+.opts li .r{font-size:11.5px;color:var(--muted);flex:none}
+.opts li.mk{color:var(--green);font-weight:500}
+.opts li.none{color:var(--muted);cursor:default}
+.combo mark{background:rgba(0,133,69,.16);color:inherit;border-radius:2px}
+
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font:500 10px Raleway;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+  padding:12px 10px;border-bottom:1px solid var(--line)}
+td{padding:11px 10px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.rk{color:var(--muted);font-variant-numeric:tabular-nums;padding-right:5px}
+.tag{display:inline-block;background:var(--beige-dark);border-radius:3px;padding:2px 7px;font-size:11.5px}
+.alias{display:inline-block;border:1px solid var(--line);border-radius:3px;padding:1px 6px;font-size:11px;
+  color:var(--muted);margin:2px 3px 0 0}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:7px;flex:none}
+.dot.low{background:var(--red)}
+.dot.nul{background:var(--red);box-shadow:0 0 0 3px rgba(230,43,39,.2)}
+.flagpl{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:500}
+.flagpl::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--red)}
+.empty{padding:26px 10px;color:var(--muted);font-size:13.5px;text-align:center}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kpi{background:#fff;border:1px solid var(--line-soft);border-radius:var(--r);padding:16px 18px}
+.kpi .v{font:300 26px/1.1 Raleway;font-variant-numeric:tabular-nums}
+.kpi .k{font:500 10px Raleway;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.filters{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:18px}
+.filters .f{margin:0}
+.rec{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line-soft)}
+.rec:last-child{border-bottom:0}
+.rec .m{font-size:12px;color:var(--muted)}
+.warn{background:#fff8e6;border:1px solid #ecd58c;border-radius:var(--r);padding:10px 14px;font-size:12.5px;margin-bottom:20px}
+.ordbox{background:var(--beige-dark);border-radius:var(--r);padding:14px 16px;font:400 13px/1.7 Raleway;
+  white-space:pre-wrap;margin-top:12px}
+#toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,90px);background:var(--green-dark);color:var(--beige);
+  padding:13px 22px;border-radius:var(--r);font-size:14px;z-index:60;transition:transform .25s ease;max-width:92vw}
+#toast.on{transform:translate(-50%,0)}
+@media(prefers-reduced-motion:reduce){#toast{transition:none}}
+@media(max-width:900px){.split{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.wrap{padding:0 15px}h2{font-size:23px}.two{grid-template-columns:1fr}
+  .kpis{grid-template-columns:1fr}th,td{padding:9px 6px}.hide-s{display:none}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="hrow">
+      <div>
+        <div class="kicker" data-i="kicker"></div>
+        <div class="hname" data-i="apptitle"></div>
+      </div>
+      <div class="hright">
+        <div class="langs" id="langs">
+          <button data-l="da" aria-pressed="true">DA</button>
+          <button data-l="pl" aria-pressed="false">PL</button>
+        </div>
+        <button class="adm" id="admBtn"></button>
+      </div>
+    </div>
+    <nav id="nav">
+      <button data-t="reg" aria-selected="true"></button>
+      <button data-t="lager" aria-selected="false"></button>
+      <button data-t="stat" aria-selected="false" hidden></button>
+      <button data-t="ind" aria-selected="false" hidden></button>
+      <button data-t="best" aria-selected="false" hidden></button>
+      <button data-t="koe" aria-selected="false" hidden></button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+<div class="warn" id="demo" hidden></div>
+
+<!-- ============ 1. REGISTRER (tekniker) ============ -->
+<section class="view" id="reg">
+  <h2 data-i="reg_h"></h2>
+  <p class="sub" data-i="reg_s"></p>
+  <div class="split">
+    <div class="panel">
+      <div class="f">
+        <label class="lab" for="q_ud" data-i="f_ud"></label>
+        <div class="combo" id="c_ud">
+          <input id="q_ud" role="combobox" aria-expanded="false" aria-autocomplete="list" autocomplete="off">
+          <ul class="opts" role="listbox" hidden></ul>
+        </div>
+      </div>
+      <div class="f">
+        <label class="lab" for="q_mat"><span data-i="f_mat"></span><span class="unit" id="u_enhed"></span></label>
+        <div class="combo" id="c_mat">
+          <input id="q_mat" role="combobox" aria-expanded="false" aria-autocomplete="list" autocomplete="off">
+          <ul class="opts" role="listbox" hidden></ul>
+        </div>
+      </div>
+      <div class="two">
+        <div class="f"><label class="lab" for="f_antal" data-i="f_antal"></label>
+          <input id="f_antal" type="number" min="0" step="any" inputmode="decimal"></div>
+        <div class="f"><label class="lab" for="f_dato" data-i="f_dato"></label>
+          <input id="f_dato" type="date"></div>
+      </div>
+      <div class="two">
+        <div class="f"><label class="lab" for="f_init" data-i="f_init"></label>
+          <input id="f_init" maxlength="6" autocomplete="off"></div>
+        <div class="f"><label class="lab" for="f_note" data-i="f_note"></label>
+          <input id="f_note" autocomplete="off"></div>
+      </div>
+      <button class="btn" id="save"></button>
+    </div>
+    <div>
+      <div class="sec" style="margin-top:0"><h3 data-i="reg_recent"></h3></div>
+      <div class="panel flush"><div id="recent"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2. LAGER (tekniker ser beholdning; admin ser alt) ============ -->
+<section class="view" id="lager" hidden>
+  <h2 data-i="lag_h"></h2>
+  <p class="sub" data-i="lag_s"></p>
+  <div class="panel">
+    <div class="f"><label class="lab" for="l_sog" data-i="lag_sog"></label><input id="l_sog" autocomplete="off"></div>
+    <table><thead><tr>
+      <th data-i="t_vare"></th>
+      <th class="adm-col hide-s" data-i="t_varenr"></th>
+      <th class="adm-col hide-s" data-i="t_lev"></th>
+      <th class="num" data-i="t_beh"></th>
+      <th class="num adm-col" data-i="t_pris"></th>
+      <th class="num adm-col"></th>
+    </tr></thead><tbody id="lagerliste"></tbody></table>
+  </div>
+</section>
+
+<!-- ============ 3. STATISTIK (admin) ============ -->
+<section class="view" id="stat" hidden>
+  <h2 data-i="st_h"></h2>
+  <p class="sub" data-i="st_s"></p>
+  <div class="filters">
+    <div class="f"><label class="lab" for="d_fra" data-i="ov_fra"></label><input id="d_fra" type="date"></div>
+    <div class="f"><label class="lab" for="d_til" data-i="ov_til"></label><input id="d_til" type="date"></div>
+    <button class="btn alt sm" id="d_clear"></button>
+    <button class="btn sm" id="csv"></button>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="v" id="k_kr">—</div><div class="k" data-i="k_kr"></div></div>
+    <div class="kpi"><div class="v" id="k_ind">—</div><div class="k" data-i="k_ind"></div></div>
+    <div class="kpi"><div class="v" id="k_top">—</div><div class="k" data-i="k_top"></div></div>
+    <div class="kpi"><div class="v" id="k_vare">—</div><div class="k" data-i="k_vare"></div></div>
+  </div>
+
+  <div class="sec"><h3 data-i="st_ud"></h3><span class="hint" data-i="st_ud_h"></span></div>
+  <div class="panel">
+    <canvas id="chart" height="150"></canvas>
+    <table style="margin-top:18px"><thead><tr>
+      <th data-i="t_ud"></th><th class="num" data-i="t_ind"></th><th class="num" data-i="t_kr"></th>
+    </tr></thead><tbody id="rankUd"></tbody></table>
+  </div>
+
+  <div class="split" style="margin-top:0">
+    <div>
+      <div class="sec"><h3 data-i="st_ofte"></h3></div>
+      <div class="panel flush"><table><tbody id="rankOfte"></tbody></table></div>
+    </div>
+    <div>
+      <div class="sec"><h3 data-i="st_dyre"></h3></div>
+      <div class="panel flush"><table><tbody id="rankDyre"></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="sec"><h3 data-i="st_alle"></h3><span class="hint" data-i="st_alle_h"></span></div>
+  <div class="panel flush"><table><thead><tr>
+    <th data-i="t_dato"></th><th data-i="t_vare"></th><th class="num" data-i="t_antal"></th>
+    <th data-i="t_til"></th><th class="hide-s" data-i="t_init"></th><th class="num" data-i="t_kr"></th><th></th>
+  </tr></thead><tbody id="alle"></tbody></table></div>
+</section>
+
+<!-- ============ 4. INDKØB (admin) ============ -->
+<section class="view" id="ind" hidden>
+  <h2 data-i="in_h"></h2>
+  <p class="sub" data-i="in_s"></p>
+  <div class="split">
+    <div class="panel">
+      <div class="f">
+        <label class="lab" for="q_ind"><span data-i="f_mat"></span><span class="unit" id="u_ind"></span></label>
+        <div class="combo" id="c_ind">
+          <input id="q_ind" role="combobox" aria-expanded="false" aria-autocomplete="list" autocomplete="off">
+          <ul class="opts" role="listbox" hidden></ul>
+        </div>
+      </div>
+      <div class="two">
+        <div class="f"><label class="lab" for="i_antal" data-i="in_antal"></label>
+          <input id="i_antal" type="number" min="0" step="any" inputmode="decimal"></div>
+        <div class="f"><label class="lab" for="i_dato" data-i="f_dato"></label>
+          <input id="i_dato" type="date"></div>
+      </div>
+      <div class="two">
+        <div class="f"><label class="lab" for="i_pris" data-i="in_pris"></label>
+          <input id="i_pris" type="number" step="any" inputmode="decimal"></div>
+        <div class="f"><label class="lab" for="i_init" data-i="f_init"></label>
+          <input id="i_init" maxlength="6" autocomplete="off"></div>
+      </div>
+      <button class="btn" id="i_save"></button>
+    </div>
+    <div>
+      <div class="sec" style="margin-top:0"><h3 data-i="in_recent"></h3></div>
+      <div class="panel flush"><div id="indrecent"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5. BESTILLINGSLISTE (admin) ============ -->
+<section class="view" id="best" hidden>
+  <h2 data-i="be_h"></h2>
+  <p class="sub" data-i="be_s"></p>
+  <div id="bestbody"></div>
+</section>
+
+<!-- ============ 6. KØ / kuratering (admin) ============ -->
+<section class="view" id="koe" hidden>
+  <h2 data-i="ko_h"></h2>
+  <p class="sub" data-i="ko_s"></p>
+  <div class="panel flush"><table><tbody id="koeliste"></tbody></table></div>
+</section>
+</main>
+
+<div id="toast"></div>
+
+<script>
+/* =============== CONFIG =============== */
+const SUPABASE_URL = "";
+const SUPABASE_ANON_KEY = "";
+const AFDELING = "Ejby";                 // ét lager nu. Hedehusene: tilføj som valg her + i bevaegelser.
+const ADMIN_KODE_DEMO = "godik";         // kun DEMO. Live: check-access Edge Function (se README)
+const DEMO = !(SUPABASE_URL && SUPABASE_ANON_KEY);
+let sb = null;
+if(!DEMO && window.supabase) sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* =============== SPROG =============== */
+const I18N = {
+ da:{kicker:"Godik · Power "+AFDELING, apptitle:"Reservedele og lager",
+  tab_reg:"Registrer",tab_lager:"Lager",tab_stat:"Statistik",tab_ind:"Indkøb",tab_best:"Bestilling",tab_koe:"Nye varer",
+  adm_ind:"Administration",adm_ud:"Luk administration",adm_kode:"Adgangskode:",adm_fejl:"Forkert kode",
+  reg_h:"Hvad har du brugt?",reg_s:"Skriv de første bogstaver — listen filtrerer selv. Beholdningen på lageret opdateres automatisk.",
+  f_ud:"Brugt til",f_mat:"Reservedel",f_antal:"Antal",f_dato:"Dato",f_init:"Initialer",f_note:"Note",
+  ph_ud:"Søg udstyr — tavle, generator, lystårn…",ph_mat:"Søg reservedel…",
+  save:"Registrer forbrug",reg_recent:"Senest registreret",
+  opret:"Opret",ingen:"Ingen træf",gemt:"Registreret",mangler:"Udfyld udstyr, reservedel og antal",
+  ny_ud_type:"Hvilken type udstyr? (tavle / generator / lystårn / køletrailer / andet)",
+  lag_h:"Lager",lag_s:"Søg og se hvor mange der er tilbage.",lag_sog:"Søg — navn, nummer eller dit eget ord",
+  lag_s_adm:"Navn, bestillingsnummer, leverandør, beholdning og pris. Ret en linje ved at klikke Ret.",
+  st_h:"Statistik",st_s:"Hvad bruges mest, hvad koster mest, og hvilket udstyr æder flest penge.",
+  k_kr:"Forbrug i perioden",k_ind:"Indgreb",k_top:"Dyreste udstyr",k_vare:"Dyreste reservedel",
+  st_ud:"Udstyr — dyrest at holde i drift",st_ud_h:"Kroner og antal indgreb",
+  st_ofte:"Mest brugte reservedele",st_dyre:"Dyreste reservedele",
+  st_alle:"Alle registreringer",st_alle_h:"Ret eller slet en forkert linje",
+  ov_fra:"Fra",ov_til:"Til",clear:"Nulstil",csv:"Eksportér CSV",
+  in_h:"Indkøb",in_s:"Har I købt ind? Skriv antallet ind her, så stiger beholdningen. Prisen er valgfri — udfyldt opdaterer den varens standardpris.",
+  in_antal:"Antal købt",in_pris:"Pris pr. enhed",in_recent:"Seneste indkøb",in_gemt:"Lagt på lager",in_laeg:"Læg på lager",
+  be_h:"Bestillingsliste",be_s:"Alt hvor beholdningen er nede på minimum eller lavere, samlet pr. leverandør. Kopiér listen og send den.",
+  be_tom:"Intet skal bestilles.",be_kopi:"Kopiér",be_kopieret:"Kopieret",be_nul:"udsolgt",
+  be_mangler:"mangler",be_ingen_lev:"Uden leverandør",
+  ko_h:"Nye varer fra teknikerne",ko_s:"Giv varen sit danske navn, bestillingsnummer, leverandør og pris. Teknikerens eget ord gemmes som søgeord, så han finder varen igen næste gang.",
+  ko_tom:"Intet venter — kataloget er rent.",
+  t_vare:"Reservedel",t_varenr:"Bestillingsnr.",t_lev:"Leverandør",t_beh:"På lager",t_pris:"Pris",
+  t_ud:"Udstyr",t_ind:"Indgreb",t_kr:"Beløb",t_dato:"Dato",t_antal:"Antal",t_til:"Brugt til",t_init:"Init.",
+  c_da:"Navn (dansk)",c_pl:"Navn (polsk)",c_nr:"Bestillingsnummer",c_lev:"Leverandør",c_enhed:"Enhed",
+  c_pris:"Pris pr. enhed",c_min:"Minimum",c_alias:"Søgeord (adskilt med komma)",
+  gem:"Gem",godkend:"Godkend",ret:"Ret",slet:"Slet",luk:"Luk",tilfoej_alias:"+ gem som søgeord",
+  gemt2:"Gemt",slettet:"Slettet",mangler_da:"Skriv det danske navn først",tom:"Ingen registreringer i perioden.",
+  demo:"DEMO — intet gemmes. Udfyld CONFIG i toppen af filen for at koble på Supabase. Adminkode i demo: godik"},
+
+ pl:{kicker:"Godik · Power "+AFDELING, apptitle:"Części zamienne i magazyn",
+  tab_reg:"Rejestruj",tab_lager:"Magazyn",tab_stat:"Statystyka",tab_ind:"Zakupy",tab_best:"Zamówienia",tab_koe:"Nowe pozycje",
+  adm_ind:"Administracja",adm_ud:"Zamknij administrację",adm_kode:"Hasło:",adm_fejl:"Błędne hasło",
+  reg_h:"Czego użyłeś?",reg_s:"Wpisz kilka pierwszych liter — lista sama się zawęzi. Stan magazynu zaktualizuje się automatycznie.",
+  f_ud:"Użyto do",f_mat:"Część",f_antal:"Ilość",f_dato:"Data",f_init:"Inicjały",f_note:"Notatka",
+  ph_ud:"Szukaj sprzętu — rozdzielnica, generator, wieża…",ph_mat:"Szukaj części…",
+  save:"Zarejestruj zużycie",reg_recent:"Ostatnio zarejestrowane",
+  opret:"Dodaj",ingen:"Brak wyników",gemt:"Zarejestrowano",mangler:"Uzupełnij sprzęt, część i ilość",
+  ny_ud_type:"Jaki typ sprzętu? (rozdzielnica / generator / wieża świetlna / chłodnia / inne)",
+  lag_h:"Magazyn",lag_s:"Szukaj i sprawdź, ile zostało.",lag_sog:"Szukaj — nazwa, numer lub twoje własne słowo",
+  lag_s_adm:"Nazwa, numer zamówieniowy, dostawca, stan i cena.",
+  st_h:"Statystyka",st_s:"Co jest używane najczęściej, co kosztuje najwięcej i który sprzęt pożera najwięcej pieniędzy.",
+  k_kr:"Zużycie w okresie",k_ind:"Naprawy",k_top:"Najdroższy sprzęt",k_vare:"Najdroższa część",
+  st_ud:"Sprzęt — najdroższy w utrzymaniu",st_ud_h:"Kwoty i liczba napraw",
+  st_ofte:"Najczęściej używane części",st_dyre:"Najdroższe części",
+  st_alle:"Wszystkie wpisy",st_alle_h:"Popraw lub usuń błędny wiersz",
+  ov_fra:"Od",ov_til:"Do",clear:"Wyczyść",csv:"Eksport CSV",
+  in_h:"Zakupy",in_s:"Kupiliście coś? Wpisz ilość tutaj, a stan magazynu wzrośnie. Cena opcjonalnie.",
+  in_antal:"Ilość kupiona",in_pris:"Cena za jedn.",in_recent:"Ostatnie zakupy",in_gemt:"Dodano do magazynu",in_laeg:"Dodaj do magazynu",
+  be_h:"Lista zamówień",be_s:"Wszystko, czego stan spadł do minimum lub niżej, pogrupowane wg dostawcy.",
+  be_tom:"Nie ma co zamawiać.",be_kopi:"Kopiuj",be_kopieret:"Skopiowano",be_nul:"brak",
+  be_mangler:"brakuje",be_ingen_lev:"Bez dostawcy",
+  ko_h:"Nowe pozycje od techników",ko_s:"Nadaj pozycji duńską nazwę, numer zamówieniowy, dostawcę i cenę. Słowo technika zostanie zapisane jako słowo kluczowe.",
+  ko_tom:"Nic nie czeka — katalog jest czysty.",
+  t_vare:"Część",t_varenr:"Nr zamów.",t_lev:"Dostawca",t_beh:"W magazynie",t_pris:"Cena",
+  t_ud:"Sprzęt",t_ind:"Naprawy",t_kr:"Kwota",t_dato:"Data",t_antal:"Ilość",t_til:"Użyto do",t_init:"Inic.",
+  c_da:"Nazwa (duński)",c_pl:"Nazwa (polski)",c_nr:"Numer zamówieniowy",c_lev:"Dostawca",c_enhed:"Jedn.",
+  c_pris:"Cena za jedn.",c_min:"Minimum",c_alias:"Słowa kluczowe (po przecinku)",
+  gem:"Zapisz",godkend:"Zatwierdź",ret:"Popraw",slet:"Usuń",luk:"Zamknij",tilfoej_alias:"+ zapisz jako słowo kluczowe",
+  gemt2:"Zapisano",slettet:"Usunięto",mangler_da:"Najpierw wpisz duńską nazwę",tom:"Brak wpisów w okresie.",
+  demo:"DEMO — nic nie jest zapisywane. Hasło admina w demo: godik"}
+};
+let lang = "da", admin = false;
+const t = k => I18N[lang][k] ?? I18N.da[k] ?? k;
+
+/* Sprogene holdes adskilt: navn_da er kanonisk, navn_pl er teknikerens ord.
+   Et polsk ord kopieres ALDRIG ind i navn_da — varen mangler dansk navn og havner i kø. */
+function matNavn(m){
+  if(lang === "pl") return m.navn_pl || m.navn_da || "—";
+  return m.navn_da || (m.navn_pl ? m.navn_pl + " (PL)" : "—");
+}
+const manglerDa = m => !m.navn_da;
+
+/* =============== DEMO-DATA =============== */
+let materialer = [
+  {id:1,navn_da:"Kabel 3x2,5",navn_pl:"Kabel 3x2,5",aliaser:["przewód"],varenr:"K25",leverandor:"Solar",enhed:"m",pris:14,minimum:50,status:"kurateret"},
+  {id:2,navn_da:"Oliefilter",navn_pl:"Filtr oleju",aliaser:[],varenr:"OF-12",leverandor:"Thansen",enhed:"stk",pris:95,minimum:4,status:"kurateret"},
+  {id:3,navn_da:"Powerlock hun",navn_pl:"Powerlock żeński",aliaser:[],varenr:"PL-H",leverandor:"Solar",enhed:"stk",pris:220,minimum:2,status:"kurateret"},
+  {id:4,navn_da:"Kontaktor 25A",navn_pl:"Stycznik 25A",aliaser:[],varenr:"LC1D25",leverandor:"Solar",enhed:"stk",pris:340,minimum:2,status:"kurateret"},
+  {id:5,navn_da:"Tætning",navn_pl:"Uszczelka",aliaser:["pakning"],varenr:"",leverandor:"",enhed:"stk",pris:12,minimum:10,status:"kurateret"},
+  {id:6,navn_da:"",navn_pl:"Przepustka gumowa 20mm",aliaser:[],varenr:"",leverandor:"",enhed:"stk",pris:null,minimum:0,status:"ukurateret"}
+];
+let udstyr = [
+  {id:1,navn:"Generator 45",type:"Generator",serienr:"GEN-045"},
+  {id:2,navn:"Generator 12",type:"Generator",serienr:"GEN-012"},
+  {id:3,navn:"Lystårn 3",type:"Lystårn",serienr:""},
+  {id:4,navn:"Køletrailer 2",type:"Køletrailer",serienr:""},
+  {id:5,navn:"Tavle 21",type:"Tavle",serienr:""}
+];
+/* bevaegelser: én tabel for både forbrug (negativ) og indkøb (positiv).
+   Beholdning = summen. Derfor kan man altid se hvor tallet kommer fra. */
+let bevaegelser = [
+  {id:1,materiale_id:1,antal:200,art:"indkoeb",udstyr_id:null,dato:"2026-06-01",initialer:"AC",note:"",pris:14,afdeling:AFDELING},
+  {id:2,materiale_id:2,antal:10,art:"indkoeb",udstyr_id:null,dato:"2026-06-01",initialer:"AC",note:"",pris:95,afdeling:AFDELING},
+  {id:3,materiale_id:3,antal:6,art:"indkoeb",udstyr_id:null,dato:"2026-06-01",initialer:"AC",note:"",pris:220,afdeling:AFDELING},
+  {id:4,materiale_id:4,antal:3,art:"indkoeb",udstyr_id:null,dato:"2026-06-01",initialer:"AC",note:"",pris:340,afdeling:AFDELING},
+  {id:5,materiale_id:5,antal:12,art:"indkoeb",udstyr_id:null,dato:"2026-06-01",initialer:"AC",note:"",pris:12,afdeling:AFDELING},
+  {id:6,materiale_id:1,antal:-20,art:"forbrug",udstyr_id:1,dato:"2026-07-02",initialer:"DI",note:"",pris:14,afdeling:AFDELING},
+  {id:7,materiale_id:2,antal:-1,art:"forbrug",udstyr_id:1,dato:"2026-07-18",initialer:"DA",note:"Service",pris:95,afdeling:AFDELING},
+  {id:8,materiale_id:3,antal:-2,art:"forbrug",udstyr_id:1,dato:"2026-08-01",initialer:"TO",note:"",pris:220,afdeling:AFDELING},
+  {id:9,materiale_id:2,antal:-1,art:"forbrug",udstyr_id:3,dato:"2026-07-22",initialer:"DI",note:"",pris:95,afdeling:AFDELING},
+  {id:10,materiale_id:4,antal:-1,art:"forbrug",udstyr_id:5,dato:"2026-08-06",initialer:"TO",note:"",pris:340,afdeling:AFDELING},
+  {id:11,materiale_id:5,antal:-12,art:"forbrug",udstyr_id:5,dato:"2026-08-10",initialer:"TO",note:"",pris:12,afdeling:AFDELING},
+  {id:12,materiale_id:1,antal:-6,art:"forbrug",udstyr_id:4,dato:"2026-08-05",initialer:"DA",note:"",pris:14,afdeling:AFDELING}
+];
+let seq = {m:7,u:6,b:13};
+
+/* =============== DATA =============== */
+const db = {
+  async mats(){ if(DEMO) return materialer.map(m => ({...m}));
+    const {data} = await sb.from("materialer").select("*"); return data||[]; },
+  async uds(){ if(DEMO) return udstyr.map(u => ({...u}));
+    const {data} = await sb.from("udstyr").select("*").order("navn"); return data||[]; },
+  async bev(){ if(DEMO) return bevaegelser.map(b => ({...b}));
+    const {data} = await sb.from("bevaegelser").select("*").eq("afdeling",AFDELING).order("dato",{ascending:false}); return data||[]; },
+  async addMat(r){ if(DEMO){ r.id = seq.m++; materialer.push(r); return {...r}; }
+    const {data} = await sb.from("materialer").insert(r).select().single(); return data; },
+  async putMat(id,p){ if(DEMO){ Object.assign(materialer.find(x=>x.id===id),p); return; }
+    await sb.from("materialer").update(p).eq("id",id); },
+  async addUd(r){ if(DEMO){ r.id = seq.u++; udstyr.push(r); return {...r}; }
+    const {data} = await sb.from("udstyr").insert(r).select().single(); return data; },
+  async addBev(r){ if(DEMO){ r.id = seq.b++; bevaegelser.push(r); return {...r}; }
+    const {data} = await sb.from("bevaegelser").insert(r).select().single(); return data; },
+  async putBev(id,p){ if(DEMO){ Object.assign(bevaegelser.find(x=>x.id===id),p); return; }
+    await sb.from("bevaegelser").update(p).eq("id",id); },
+  async delBev(id){ if(DEMO){ bevaegelser = bevaegelser.filter(x=>x.id!==id); return; }
+    await sb.from("bevaegelser").delete().eq("id",id); }
+};
+
+let MATS=[], UDS=[], BEV=[], chart=null, retter=null, aaben=null;
+const $ = s => document.querySelector(s);
+const byId = (a,id) => a.find(x => x.id === id);
+const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const kr = n => (n==null?"—":new Intl.NumberFormat("da-DK",{minimumFractionDigits:2,maximumFractionDigits:2}).format(n)+" kr");
+const kr0 = n => new Intl.NumberFormat("da-DK",{maximumFractionDigits:0}).format(n||0)+" kr";
+const tal = n => new Intl.NumberFormat("da-DK",{maximumFractionDigits:2}).format(n||0);
+const idag = () => new Date().toISOString().slice(0,10);
+const arr = a => Array.isArray(a) ? a : (a ? String(a).split(",").map(s=>s.trim()).filter(Boolean) : []);
+function toast(m){ const e=$("#toast"); e.textContent=m; e.classList.add("on");
+  clearTimeout(e._t); e._t=setTimeout(()=>e.classList.remove("on"),2200); }
+
+/* beholdning = summen af alle bevægelser for varen */
+function beholdning(id){ return BEV.reduce((s,b) => b.materiale_id===id ? s + (+b.antal||0) : s, 0); }
+const forbrugRows = () => BEV.filter(b => b.art === "forbrug");
+function belob(b){ const p = b.pris != null ? b.pris : (byId(MATS,b.materiale_id)?.pris || 0); return Math.abs(+b.antal||0) * p; }
+
+/* søgning: dansk navn, polsk navn, egne søgeord (aliaser) og bestillingsnummer */
+function matcher(m,q){
+  if(!q) return true; q = q.toLowerCase();
+  return [m.navn_da, m.navn_pl, m.varenr, ...arr(m.aliaser)].some(f => (f||"").toLowerCase().includes(q));
+}
+
+/* =============== COMBOBOX =============== */
+function Combo(root,cfg){
+  const inp = root.querySelector("input"), ul = root.querySelector(".opts");
+  let vis = [], akt = -1, valgtId = null;
+  const luk = () => { ul.hidden = true; inp.setAttribute("aria-expanded","false"); akt = -1; };
+  const mk = (s,q) => { const i = s.toLowerCase().indexOf(q.toLowerCase());
+    return (!q||i<0) ? esc(s) : esc(s.slice(0,i))+"<mark>"+esc(s.slice(i,i+q.length))+"</mark>"+esc(s.slice(i+q.length)); };
+  function tegn(){
+    const q = inp.value.trim();
+    vis = cfg.items().filter(o => cfg.match(o,q)).slice(0,50);
+    const exact = vis.some(o => cfg.label(o).toLowerCase() === q.toLowerCase());
+    let h = vis.map((o,i) => `<li role="option" data-i="${i}" aria-selected="false">
+      <span>${mk(cfg.label(o),q)}</span><span class="r">${esc(cfg.right(o)||"")}</span></li>`).join("");
+    if(q && !exact && cfg.create) h += `<li role="option" class="mk" data-new="1" aria-selected="false">+ ${t("opret")} «${esc(q)}»</li>`;
+    ul.innerHTML = h || `<li class="none">${t("ingen")}</li>`;
+    ul.hidden = false; inp.setAttribute("aria-expanded","true"); akt = -1;
+  }
+  function hop(d){
+    const li = [...ul.querySelectorAll("li[role=option]")]; if(!li.length) return;
+    akt = (akt+d+li.length) % li.length;
+    li.forEach((x,i) => x.setAttribute("aria-selected", i===akt));
+    li[akt].scrollIntoView({block:"nearest"});
+  }
+  async function tag(li){
+    if(li.dataset.new){ const ny = await cfg.create(inp.value.trim()); if(!ny) return;
+      valgtId = ny.id; inp.value = cfg.label(ny); }
+    else { const o = vis[+li.dataset.i]; valgtId = o.id; inp.value = cfg.label(o); }
+    luk(); cfg.onPick && cfg.onPick(valgtId);
+  }
+  inp.addEventListener("input", () => { valgtId = null; cfg.onPick && cfg.onPick(null); tegn(); });
+  inp.addEventListener("focus", tegn);
+  inp.addEventListener("keydown", e => {
+    if(e.key==="ArrowDown"){ e.preventDefault(); ul.hidden ? tegn() : hop(1); }
+    else if(e.key==="ArrowUp"){ e.preventDefault(); hop(-1); }
+    else if(e.key==="Enter"){ const li = ul.querySelector("li[aria-selected=true]"); if(li){ e.preventDefault(); tag(li); } }
+    else if(e.key==="Escape") luk();
+  });
+  ul.addEventListener("mousedown", e => { const li = e.target.closest("li[role=option]"); if(li){ e.preventDefault(); tag(li); } });
+  document.addEventListener("click", e => { if(!root.contains(e.target)) luk(); });
+  return { get id(){ return valgtId; },
+    ryd(){ valgtId=null; inp.value=""; luk(); },
+    sprog(){ if(valgtId){ const o = cfg.items().find(x=>x.id===valgtId); if(o) inp.value = cfg.label(o); }
+             inp.placeholder = cfg.ph(); } };
+}
+const comboUd = Combo($("#c_ud"), {
+  items: () => UDS, label: u => u.navn, right: u => u.type,
+  match: (u,q) => !q || (u.navn+" "+u.type+" "+(u.serienr||"")).toLowerCase().includes(q.toLowerCase()),
+  ph: () => t("ph_ud"),
+  create: async navn => { const ty = (prompt(t("ny_ud_type"),"Generator")||"Andet").trim();
+    const r = await db.addUd({navn,type:ty,serienr:""}); UDS = await db.uds(); return r; }
+});
+const matCfg = extra => ({
+  items: () => MATS, label: m => matNavn(m),
+  right: m => `${tal(beholdning(m.id))} ${m.enhed}`,
+  match: matcher, ph: () => t("ph_mat"), ...extra
+});
+const comboMat = Combo($("#c_mat"), matCfg({
+  create: async navn => {                       /* teknikerens ord i HANS sprogfelt */
+    const r = {navn_da:"",navn_pl:"",aliaser:[],varenr:"",leverandor:"",enhed:"stk",pris:null,minimum:0,status:"ukurateret"};
+    r[lang==="pl" ? "navn_pl" : "navn_da"] = navn;
+    const ny = await db.addMat(r); MATS = await db.mats(); tegnKoe(); return ny;
+  },
+  onPick: id => { const m = byId(MATS,id); $("#u_enhed").textContent = m ? m.enhed : ""; }
+}));
+const comboInd = Combo($("#c_ind"), matCfg({
+  create: null,
+  onPick: id => { const m = byId(MATS,id); $("#u_ind").textContent = m ? m.enhed : "";
+    if(m && m.pris != null && !$("#i_pris").value) $("#i_pris").value = m.pris; }
+}));
+
+/* =============== RENDER =============== */
+function tekster(){
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i]").forEach(e => e.textContent = t(e.dataset.i));
+  ["reg","lager","stat","ind","best","koe"].forEach(k => $(`nav [data-t=${k}]`).textContent = t("tab_"+k));
+  $("#save").textContent = t("save");
+  $("#i_save").textContent = t("in_laeg");
+  $("#d_clear").textContent = t("clear"); $("#csv").textContent = t("csv");
+  $("#admBtn").textContent = admin ? t("adm_ud") : t("adm_ind");
+  $("#demo").textContent = t("demo");
+  $("#lager .sub").textContent = admin ? t("lag_s_adm") : t("lag_s");
+  comboUd.sprog(); comboMat.sprog(); comboInd.sprog();
+  alt();
+}
+function alt(){ tegnSenest(); tegnLager(); tegnStat(); tegnIndkoeb(); tegnBest(); tegnKoe(); }
+
+function tegnSenest(){
+  const r = forbrugRows().slice().sort((a,b) => b.id-a.id).slice(0,7);
+  $("#recent").innerHTML = r.length ? r.map(b => {
+    const m = byId(MATS,b.materiale_id), u = byId(UDS,b.udstyr_id);
+    return `<div class="rec"><span>${esc(m?matNavn(m):"—")} <b style="font-weight:500">× ${tal(Math.abs(b.antal))}</b>
+      <div class="m">→ ${esc(u?u.navn:"—")}</div></span>
+      <span class="m" style="text-align:right;flex:none">${b.dato}<br>${esc(b.initialer||"")}</span></div>`;
+  }).join("") : `<div class="empty">—</div>`;
+}
+
+function tegnLager(){
+  document.querySelectorAll(".adm-col").forEach(e => e.hidden = !admin);
+  const q = $("#l_sog").value.trim();
+  const liste = MATS.filter(m => matcher(m,q)).sort((a,b) => matNavn(a).localeCompare(matNavn(b),"da"));
+  $("#lagerliste").innerHTML = liste.length ? liste.map(m => {
+    if(admin && m.id === aaben) return kortRaekke(m,6);
+    const b = beholdning(m.id);
+    const kl = b <= 0 ? "nul" : (m.minimum > 0 && b <= m.minimum ? "low" : "");
+    return `<tr><td><span class="dot ${kl}"></span>${esc(matNavn(m))}
+        ${manglerDa(m) ? `<span class="flagpl">${esc(m.navn_pl||"")}</span>` : ""}
+        ${arr(m.aliaser).length ? `<div>${arr(m.aliaser).map(a=>`<span class="alias">${esc(a)}</span>`).join("")}</div>` : ""}</td>
+      <td class="adm-col hide-s" ${admin?"":"hidden"}>${esc(m.varenr||"—")}</td>
+      <td class="adm-col hide-s" ${admin?"":"hidden"}>${esc(m.leverandor||"—")}</td>
+      <td class="num">${tal(b)} <span class="m" style="color:var(--muted);font-size:12px">${esc(m.enhed)}</span></td>
+      <td class="num adm-col" ${admin?"":"hidden"}>${m.pris==null?"—":kr(m.pris)}</td>
+      <td class="num adm-col" ${admin?"":"hidden"}><button class="txt" onclick="aaben=${m.id};tegnLager()">${t("ret")}</button></td></tr>`;
+  }).join("") : `<tr><td colspan="6" class="empty">${t("ingen")}</td></tr>`;
+}
+
+function kortRaekke(m,cols){
+  return `<tr><td colspan="${cols}">
+    <div class="two">
+      <div class="f"><label class="lab">${t("c_da")}</label><input id="c_da" value="${esc(m.navn_da||"")}"></div>
+      <div class="f"><label class="lab">${t("c_pl")}</label><input id="c_pl" value="${esc(m.navn_pl||"")}"></div>
+    </div>
+    <div class="two">
+      <div class="f"><label class="lab">${t("c_nr")}</label><input id="c_nr" value="${esc(m.varenr||"")}"></div>
+      <div class="f"><label class="lab">${t("c_lev")}</label><input id="c_lev" value="${esc(m.leverandor||"")}" list="levliste"></div>
+    </div>
+    <div class="two">
+      <div class="f"><label class="lab">${t("c_enhed")}</label><input id="c_enhed" value="${esc(m.enhed||"stk")}"></div>
+      <div class="f"><label class="lab">${t("c_pris")}</label><input id="c_pris" type="number" step="any" value="${m.pris??""}"></div>
+    </div>
+    <div class="two">
+      <div class="f"><label class="lab">${t("c_min")}</label><input id="c_min" type="number" step="any" value="${m.minimum??0}"></div>
+      <div class="f"><label class="lab">${t("c_alias")}</label><input id="c_alias" value="${esc(arr(m.aliaser).join(", "))}"></div>
+    </div>
+    <button class="btn sm" onclick="gemMat(${m.id})">${manglerDa(m)?t("godkend"):t("gem")}</button>
+    <button class="btn alt sm" style="margin-left:8px" onclick="aaben=null;tegnLager();tegnKoe()">${t("luk")}</button>
+  </td></tr>`;
+}
+async function gemMat(id){
+  const da = $("#c_da").value.trim();
+  if(!da){ toast(t("mangler_da")); return; }
+  await db.putMat(id, {navn_da:da, navn_pl:$("#c_pl").value.trim(), varenr:$("#c_nr").value.trim(),
+    leverandor:$("#c_lev").value.trim(), enhed:$("#c_enhed").value.trim()||"stk",
+    pris: $("#c_pris").value==="" ? null : parseFloat($("#c_pris").value),
+    minimum: parseFloat($("#c_min").value)||0,
+    aliaser: arr($("#c_alias").value), status:"kurateret"});
+  MATS = await db.mats(); aaben = null; alt(); toast(t("gemt2"));
+}
+
+/* --- kø: nye varer fra teknikerne --- */
+function tegnKoe(){
+  const koe = MATS.filter(m => m.status !== "kurateret" || manglerDa(m));
+  $("#koeliste").innerHTML = koe.length ? koe.map(m => {
+    if(m.id === aaben) return kortRaekke(m,3);
+    return `<tr><td><span class="flagpl"></span>${esc(m.navn_pl || m.navn_da || "—")}</td>
+      <td class="num"><button class="txt" onclick="aaben=${m.id};tegnKoe();tegnLager()">${t("godkend")}</button></td></tr>`;
+  }).join("") : `<tr><td class="empty">${t("ko_tom")}</td></tr>`;
+  const b = $("nav [data-t=koe]"); b.textContent = t("tab_koe");
+  if(koe.length) b.insertAdjacentHTML("beforeend", `<span class="chip">${koe.length}</span>`);
+}
+
+/* --- statistik --- */
+const iPeriode = d => { const a = $("#d_fra").value, b = $("#d_til").value;
+  return !((a && d < a) || (b && d > b)); };
+function tegnStat(){
+  const rows = forbrugRows().filter(b => iPeriode(b.dato));
+  const prUd = {}, prVare = {};
+  rows.forEach(b => {
+    const u = byId(UDS,b.udstyr_id);
+    if(u){ (prUd[u.id] ||= {navn:u.navn,type:u.type,kr:0,d:new Set()});
+      prUd[u.id].kr += belob(b); prUd[u.id].d.add(b.dato); }
+    (prVare[b.materiale_id] ||= {antal:0,kr:0});
+    prVare[b.materiale_id].antal += Math.abs(+b.antal||0); prVare[b.materiale_id].kr += belob(b);
+  });
+  const rank = Object.values(prUd).map(x => ({...x,ind:x.d.size})).sort((a,b) => b.kr-a.kr);
+  const varer = Object.entries(prVare).map(([id,v]) => ({m:byId(MATS,+id)||byId(MATS,id),...v}));
+
+  $("#k_kr").textContent = kr0(rows.reduce((s,b) => s+belob(b),0));
+  $("#k_ind").textContent = new Set(rows.map(b => b.udstyr_id+"|"+b.dato)).size;
+  $("#k_top").textContent = rank.length ? rank[0].navn : "—";
+  const dyrest = [...varer].sort((a,b) => b.kr-a.kr)[0];
+  $("#k_vare").textContent = dyrest && dyrest.m ? matNavn(dyrest.m) : "—";
+
+  $("#rankUd").innerHTML = rank.length ? rank.map((r,i) => `<tr>
+    <td><span class="rk">${i+1}</span> ${esc(r.navn)} <span class="tag">${esc(r.type)}</span></td>
+    <td class="num">${r.ind}</td><td class="num">${kr(r.kr)}</td></tr>`).join("")
+    : `<tr><td colspan="3" class="empty">${t("tom")}</td></tr>`;
+
+  const top = rank.slice(0,8);
+  if(chart) chart.destroy();
+  chart = new Chart($("#chart"), {type:"bar",
+    data:{labels:top.map(r=>r.navn),datasets:[{data:top.map(r=>Math.round(r.kr)),
+      backgroundColor:"#082600",hoverBackgroundColor:"#008545",borderRadius:2,barThickness:26}]},
+    options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>kr0(c.parsed.y)}}},
+      scales:{y:{beginAtZero:true,grid:{color:"#E4E7DE"},ticks:{callback:v=>kr0(v),font:{family:"Raleway"}}},
+              x:{grid:{display:false},ticks:{font:{family:"Raleway"}}}},maintainAspectRatio:false}});
+
+  const li = (a,val) => a.length ? a.map((r,i) => `<tr><td><span class="rk">${i+1}</span> ${esc(r.m?matNavn(r.m):"—")}</td>
+      <td class="num">${val(r)}</td></tr>`).join("") : `<tr><td class="empty">${t("tom")}</td></tr>`;
+  $("#rankOfte").innerHTML = li([...varer].sort((a,b)=>b.antal-a.antal).slice(0,8),
+    r => `${tal(r.antal)} ${r.m?esc(r.m.enhed):""}`);
+  $("#rankDyre").innerHTML = li([...varer].sort((a,b)=>b.kr-a.kr).slice(0,8), r => kr(r.kr));
+
+  $("#alle").innerHTML = [...rows].sort((a,b) => b.dato.localeCompare(a.dato)).map(b => {
+    const m = byId(MATS,b.materiale_id), u = byId(UDS,b.udstyr_id);
+    if(b.id === retter) return `<tr><td colspan="7">
+      <div class="two"><div class="f"><label class="lab">${t("t_antal")}</label>
+        <input id="e_antal" type="number" step="any" value="${Math.abs(b.antal)}"></div>
+      <div class="f"><label class="lab">${t("t_dato")}</label><input id="e_dato" type="date" value="${b.dato}"></div></div>
+      <div class="two"><div class="f"><label class="lab">${t("t_til")}</label>
+        <select id="e_ud">${UDS.map(x=>`<option value="${x.id}" ${x.id===b.udstyr_id?"selected":""}>${esc(x.navn)}</option>`).join("")}</select></div>
+      <div class="f"><label class="lab">${t("t_init")}</label><input id="e_init" value="${esc(b.initialer||"")}" maxlength="6"></div></div>
+      <button class="btn sm" onclick="gemRet(${b.id})">${t("gem")}</button>
+      <button class="btn alt sm" style="margin-left:8px" onclick="retter=null;tegnStat()">${t("luk")}</button></td></tr>`;
+    return `<tr><td>${b.dato}</td><td>${esc(m?matNavn(m):"—")}</td><td class="num">${tal(Math.abs(b.antal))}</td>
+      <td>${esc(u?u.navn:"—")}</td><td class="hide-s">${esc(b.initialer||"")}</td><td class="num">${kr(belob(b))}</td>
+      <td class="num" style="white-space:nowrap">
+        <button class="txt" onclick="retter=${b.id};tegnStat()">${t("ret")}</button>
+        <button class="txt" style="margin-left:10px" onclick="sletBev(${b.id})">${t("slet")}</button></td></tr>`;
+  }).join("") || `<tr><td colspan="7" class="empty">${t("tom")}</td></tr>`;
+}
+async function gemRet(id){
+  const a = Math.abs(parseFloat($("#e_antal").value)||0);
+  await db.putBev(id,{antal:-a, dato:$("#e_dato").value, udstyr_id:+$("#e_ud").value,
+    initialer:$("#e_init").value.trim().toUpperCase()});
+  BEV = await db.bev(); retter = null; alt(); toast(t("gemt2"));
+}
+async function sletBev(id){ await db.delBev(id); BEV = await db.bev(); alt(); toast(t("slettet")); }
+
+/* --- indkøb: positiv bevægelse --- */
+function tegnIndkoeb(){
+  const r = BEV.filter(b => b.art === "indkoeb").sort((a,b) => b.id-a.id).slice(0,8);
+  $("#indrecent").innerHTML = r.length ? r.map(b => {
+    const m = byId(MATS,b.materiale_id);
+    return `<div class="rec"><span>${esc(m?matNavn(m):"—")} <b style="font-weight:500">+ ${tal(b.antal)}</b>
+      <div class="m">${b.pris!=null?kr(b.pris):""}</div></span>
+      <span class="m" style="text-align:right;flex:none">${b.dato}<br>${esc(b.initialer||"")}</span></div>`;
+  }).join("") : `<div class="empty">—</div>`;
+}
+$("#i_save").onclick = async () => {
+  const a = parseFloat($("#i_antal").value);
+  if(!comboInd.id || !(a > 0)){ toast(t("mangler")); return; }
+  const p = $("#i_pris").value === "" ? null : parseFloat($("#i_pris").value);
+  await db.addBev({materiale_id:comboInd.id, antal:a, art:"indkoeb", udstyr_id:null,
+    dato:$("#i_dato").value || idag(), initialer:$("#i_init").value.trim().toUpperCase(),
+    note:"", pris:p, afdeling:AFDELING});
+  if(p != null) await db.putMat(comboInd.id, {pris:p});   /* nyt indkøb = ny standardpris */
+  BEV = await db.bev(); MATS = await db.mats();
+  comboInd.ryd(); $("#i_antal").value = ""; $("#i_pris").value = ""; $("#u_ind").textContent = "";
+  alt(); toast(t("in_gemt"));
+};
+
+/* --- bestillingsliste: alt på eller under minimum, grupperet pr. leverandør --- */
+function tegnBest(){
+  const lav = MATS.filter(m => { const b = beholdning(m.id); return b <= 0 || (m.minimum > 0 && b <= m.minimum); })
+    .map(m => { const b = beholdning(m.id);
+      return {m, b, mangler: Math.max(1, (m.minimum||1) - b)}; })
+    .sort((x,y) => (x.b - (x.m.minimum||0)) - (y.b - (y.m.minimum||0)));
+  if(!lav.length){ $("#bestbody").innerHTML = `<div class="panel"><div class="empty">${t("be_tom")}</div></div>`; return; }
+  const grupper = {};
+  lav.forEach(r => (grupper[r.m.leverandor || t("be_ingen_lev")] ||= []).push(r));
+  $("#bestbody").innerHTML = Object.entries(grupper).map(([lev,rows],gi) => `
+    <div class="sec"><h3>${esc(lev)}</h3><span class="hint">${rows.length}</span>
+      <button class="btn alt sm sp" onclick="kopier(${gi})">${t("be_kopi")}</button></div>
+    <div class="panel flush"><table><thead><tr>
+      <th data-static>${t("t_vare")}</th><th>${t("t_varenr")}</th>
+      <th class="num">${t("t_beh")}</th><th class="num">${t("be_mangler")}</th></tr></thead>
+      <tbody>${rows.map(r => `<tr>
+        <td><span class="dot ${r.b<=0?"nul":"low"}"></span>${esc(matNavn(r.m))}</td>
+        <td>${esc(r.m.varenr||"—")}</td>
+        <td class="num">${tal(r.b)} ${esc(r.m.enhed)}${r.b<=0?` · ${t("be_nul")}`:""}</td>
+        <td class="num">${tal(r.mangler)} ${esc(r.m.enhed)}</td></tr>`).join("")}</tbody></table>
+      <pre class="ordbox" id="ord${gi}" hidden>${rows.map(r =>
+        `${r.m.varenr||"—"}   ${r.m.navn_da||r.m.navn_pl}   ${tal(r.mangler)} ${r.m.enhed}`).join("\n")}</pre>
+    </div>`).join("");
+}
+function kopier(gi){
+  const el = $("#ord"+gi); el.hidden = false;
+  navigator.clipboard?.writeText(el.textContent).then(() => toast(t("be_kopieret")), () => {});
+}
+
+/* =============== ROLLER =============== */
+function roller(){
+  ["stat","ind","best","koe"].forEach(k => $(`nav [data-t=${k}]`).hidden = !admin);
+  if(!admin){
+    const aktiv = $("nav button[aria-selected=true]");
+    if(aktiv && aktiv.hidden) $("nav [data-t=reg]").click();
+  }
+  $("#admBtn").classList.toggle("on", admin);
+  $("#admBtn").textContent = admin ? t("adm_ud") : t("adm_ind");
+  $("#lager .sub").textContent = admin ? t("lag_s_adm") : t("lag_s");
+  tegnLager();
+}
+$("#admBtn").onclick = async () => {
+  if(admin){ admin = false; aaben = null; roller(); return; }
+  const kode = prompt(t("adm_kode")); if(kode == null) return;
+  const ok = DEMO ? kode === ADMIN_KODE_DEMO : await tjekKode(kode);
+  if(!ok){ toast(t("adm_fejl")); return; }
+  admin = true; roller(); $("nav [data-t=stat]").click();
+};
+/* Live: koden tjekkes i en Edge Function — aldrig i denne fil. Se README. */
+async function tjekKode(kode){
+  try{
+    const {data,error} = await sb.functions.invoke("check-access",{body:{kode,app:"reservedele"}});
+    return !error && data && data.ok === true;
+  }catch(e){ return false; }
+}
+
+/* =============== HÆNDELSER =============== */
+$("#langs").onclick = e => {
+  const b = e.target.closest("button"); if(!b) return;
+  lang = b.dataset.l;
+  document.querySelectorAll("#langs button").forEach(x => x.setAttribute("aria-pressed", x===b));
+  tekster();
+};
+$("#nav").onclick = e => {
+  const b = e.target.closest("button"); if(!b || b.hidden) return;
+  document.querySelectorAll("#nav button").forEach(x => x.setAttribute("aria-selected", x===b));
+  ["reg","lager","stat","ind","best","koe"].forEach(k => $("#"+k).hidden = b.dataset.t !== k);
+};
+$("#save").onclick = async () => {
+  const a = parseFloat($("#f_antal").value);
+  if(!comboUd.id || !comboMat.id || !(a > 0)){ toast(t("mangler")); return; }
+  const m = byId(MATS, comboMat.id);
+  await db.addBev({materiale_id:comboMat.id, antal:-a, art:"forbrug", udstyr_id:comboUd.id,
+    dato:$("#f_dato").value || idag(), initialer:$("#f_init").value.trim().toUpperCase(),
+    note:$("#f_note").value.trim(), pris:(m?m.pris:null), afdeling:AFDELING});
+  BEV = await db.bev();
+  comboMat.ryd(); $("#f_antal").value = ""; $("#f_note").value = ""; $("#u_enhed").textContent = "";
+  alt(); toast(t("gemt"));
+};
+$("#l_sog").oninput = tegnLager;
+$("#d_fra").onchange = tegnStat;
+$("#d_til").onchange = tegnStat;
+$("#d_clear").onclick = () => { $("#d_fra").value=""; $("#d_til").value=""; tegnStat(); };
+$("#csv").onclick = () => {
+  const rows = forbrugRows().filter(b => iPeriode(b.dato));
+  const l = [["Dato","Reservedel","Bestillingsnr","Leverandør","Antal","Enhed","Udstyr","Type","Initialer","Beløb","Afdeling"].join(";")];
+  rows.forEach(b => { const m = byId(MATS,b.materiale_id), u = byId(UDS,b.udstyr_id);
+    l.push([b.dato, m?(m.navn_da||m.navn_pl):"", m?m.varenr:"", m?m.leverandor:"",
+      String(Math.abs(b.antal)).replace(".",","), m?m.enhed:"", u?u.navn:"", u?u.type:"",
+      b.initialer||"", String(Math.round(belob(b)*100)/100).replace(".",","), b.afdeling||AFDELING].join(";")); });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["\ufeff"+l.join("\n")],{type:"text/csv;charset=utf-8"}));
+  a.download = "reservedele_"+AFDELING+"_"+idag()+".csv"; a.click();
+};
+
+/* =============== START =============== */
+(async function(){
+  $("#f_dato").value = idag(); $("#i_dato").value = idag();
+  if(DEMO) $("#demo").hidden = false;
+  MATS = await db.mats(); UDS = await db.uds(); BEV = await db.bev();
+  document.body.insertAdjacentHTML("beforeend",
+    `<datalist id="levliste">${[...new Set(MATS.map(m=>m.leverandor).filter(Boolean))]
+      .map(l=>`<option value="${esc(l)}">`).join("")}</datalist>`);
+  tekster(); roller();
+})();
+</script>
+</body>
+</html>
