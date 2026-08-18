@@ -1,0 +1,32 @@
+name: Deploy til godik.nu
+
+# Samme mønster som diesel-appen: push til main -> FTP-upload.
+# Krav: repository secrets FTP_SERVER, FTP_USERNAME, FTP_PASSWORD.
+# Settings -> Secrets and variables -> Actions -> New repository secret.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:        # så du også kan deploye manuelt fra Actions-fanen
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hent koden
+        uses: actions/checkout@v4
+
+      - name: Upload via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: /reservedele/          # ret hvis mappen på serveren hedder noget andet
+          local-dir: ./
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.github/**
+            **/README.md
+            **/schema.sql
