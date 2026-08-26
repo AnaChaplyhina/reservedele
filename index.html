@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="data.js"></script>
 <style>
@@ -113,11 +112,6 @@ tr:last-child td{border-bottom:0}
 .rec:last-child{border-bottom:0}
 .warn{background:#fff8e6;border:1px solid #ecd58c;border-radius:var(--r);padding:10px 14px;font-size:12.5px;margin-bottom:20px}
 .ordbox{background:var(--beige-dark);border-radius:var(--r);padding:14px 16px;font:400 13px/1.7 Raleway;white-space:pre-wrap;margin:12px 0 4px}
-/* Chart.js med maintainAspectRatio:false SKAL have en forælder med fast højde,
-   ellers vokser canvas i det uendelige ved hver gentegning. */
-.chartbox{position:relative;width:100%;height:300px}
-.chartbox canvas{display:block}
-@media(max-width:560px){.chartbox{height:220px}}
 input[type=checkbox]{width:auto;padding:0;accent-color:#008545}
 #toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,90px);background:var(--green-dark);color:var(--beige);
   padding:13px 22px;border-radius:var(--r);font-size:14px;z-index:60;transition:transform .25s ease;max-width:92vw}
@@ -287,9 +281,8 @@ input[type=checkbox]{width:auto;padding:0;accent-color:#008545}
     <div class="kpi"><div class="v" id="k_vare">—</div><div class="k" data-i="k_vare"></div></div>
   </div>
   <div class="sec"><h3 data-i="st_ud"></h3><span class="hint" data-i="st_ud_h"></span></div>
-  <div class="panel">
-    <div class="chartbox"><canvas id="chart"></canvas></div>
-    <table style="margin-top:18px"><thead><tr>
+  <div class="panel flush">
+    <table><thead><tr>
       <th data-i="t_ud"></th><th class="num" data-i="t_ind"></th><th class="num" data-i="t_kr"></th>
     </tr></thead><tbody id="rankUd"></tbody></table>
   </div>
@@ -576,7 +569,7 @@ const db = {
     await sb.from("bestillinger").update(p).eq("id",id); }
 };
 
-let MATS=[], UDS=[], BEV=[], ORD=[], chart=null, retter=null, aaben=null, optaeller=null;
+let MATS=[], UDS=[], BEV=[], ORD=[], retter=null, aaben=null, optaeller=null;
 
 /* beholdning = summen af bevægelser. Ikke et felt nogen retter i hånden. */
 const BEH = new Map();
@@ -1054,21 +1047,8 @@ function tegnStat(){
     <td class="num">${r.ind}</td><td class="num">${kr(r.kr)}</td></tr>`).join("")
     : `<tr><td colspan="3" class="empty">${t("tom")}</td></tr>`;
 
-  const top = rank.slice(0,8);
-  const kort = s => String(s).length > 16 ? String(s).slice(0,15)+"…" : String(s);
-  if(chart) chart.destroy();
-  chart = new Chart($("#chart"), {type:"bar",
-    data:{labels:top.map(r=>kort(r.navn)),datasets:[{data:top.map(r=>Math.round(r.kr)),
-      backgroundColor:"#082600",hoverBackgroundColor:"#008545",borderRadius:2,
-      maxBarThickness:44,categoryPercentage:.7,barPercentage:.85}]},
-    options:{responsive:true, maintainAspectRatio:false, animation:false,
-      layout:{padding:{top:4}},
-      plugins:{legend:{display:false},
-        tooltip:{callbacks:{title:c=>top[c[0].dataIndex].navn, label:c=>kr0(c.parsed.y)}}},
-      scales:{y:{beginAtZero:true,grid:{color:"#E4E7DE"},border:{display:false},
-                 ticks:{callback:v=>kr0(v),font:{family:"Raleway",size:11},color:"#66705F"}},
-              x:{grid:{display:false},ticks:{font:{family:"Raleway",size:11},color:"#66705F",
-                 maxRotation:45,minRotation:0,autoSkip:false}}}}});
+  /* Søjlediagrammet er fjernet med vilje: tabellen nedenfor viser de samme to tal
+     (kroner og indgreb) uden at fylde en halv skærm. */
 
   $("#rankOfte").innerHTML = varer.length ? [...varer].sort((a,b)=>b.antal-a.antal).slice(0,8)
     .map((r,i) => `<tr><td><span class="rk">${i+1}</span> ${esc(r.m?matNavn(r.m):"—")}</td>
