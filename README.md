@@ -122,6 +122,52 @@ valgte `pakning` hvor værkstedet siger `tætning`. Kataloget lærer værkstedet
 
 ---
 
+## Stregkodescanning
+
+Knappen **Scan** står ved søgefeltet på Registrer, Lager og Modtagelse. Kameraet
+læser stregkoden, og varen bliver valgt med det samme — 223 af de 257 startvarer har EAN.
+
+Der hentes **intet bibliotek**: appen bruger browserens indbyggede `BarcodeDetector`.
+Det virker i Chrome og Edge, også på Android — altså der hvor teknikerne står.
+I Safari på iPhone findes API'et ikke, og appen siger det ligeud i stedet for at fejle
+i stilhed; man skriver nummeret som før. Scanning kræver HTTPS, så det virker på
+GitHub Pages og godik.nu, men ikke hvis filen åbnes direkte fra skrivebordet.
+
+Scanner man en ukendt kode, bliver tallet skrevet i søgefeltet — så kan man oprette
+varen med koden i hånden.
+
+## Historik pr. vare
+
+Klik på varens navn i Lager. Så åbnes alle bevægelser: dato, art, antal, hvilket udstyr,
+initialer — og en **løbende saldo**, så man kan se præcis hvor det nuværende tal kommer fra.
+Teknikeren ser også historikken; der er ingen priser i den.
+
+Uden dette bliver den første uoverensstemmelse mellem systemet og hylden umulig at forklare,
+og så mister tallene deres troværdighed.
+
+## Print
+
+To knapper i Lager (kun administration). Begge printer **præcis den liste der står på
+skærmen** — filtrene bestemmer, om det er én hylde, én kategori eller hele lageret.
+
+**Hyldeetiketter** — 3 pr. række, sorteret efter hyldeplads. Hver etiket viser plads,
+navn, EL-nummer og en rigtig EAN-13-stregkode tegnet som SVG (ingen bibliotek, ren
+beregning af de 95 moduler med korrekt tjekciffer). Klistret på hylden erstatter
+stregkoden al søgning. De 34 varer uden EAN får kun tekst.
+
+**Optællingsliste** — sorteret efter hyldeplads, med systemets tal og en tom kolonne
+til blyant. Print, gå rundt med papir, skriv tal, indtast bagefter under Optæl.
+Det er hurtigere end at gå rundt med telefonen, og optællingen af de 257 varer er
+den tærskel der afgør om systemet kommer i drift.
+
+## Hvem oprettede varen
+
+Nye varer fra teknikerne får `oprettet_af` med initialer — taget fra Initialer-feltet,
+ellers spørger appen. Vises under **Nye varer**, så du ved hvem du skal spørge, hvis
+ordet er uforståeligt.
+
+---
+
 ## Opsætning
 
 **1. Database.** Kør hele `schema.sql` i Supabase → SQL Editor. Opretter fire tabeller,
@@ -170,11 +216,28 @@ og der er ingen nøgler i filerne.
 
 ---
 
+## Bevidst ikke lavet
+
+Ikke fordi det er svært, men fordi det ville skade mere end det gavner nu:
+
+* **Automatisk prishentning fra Solar.** Kræver API-adgang på Godiks konto. Og priserne
+  skal ikke være præcise — de skal bære konklusionen "den generator koster mere at
+  vedligeholde end at udskifte", hvor 5 % afvigelse er uden betydning.
+* **Email ved lav beholdning.** Alle holder op med at læse dem efter en uge. Tallet på
+  Bestilling-fanen gør det samme og kan ikke overses.
+* **Hedehusene som andet lager.** Strukturen er klar (`afdeling`), men så længe Ejby ikke
+  har en eneste rigtig linje, er udvidelse bare dobbelt så meget usikkerhed.
+* **Kobling til Business Central.** Afventer at Rune åbner adgangen.
+
 ## Ikke lavet endnu
 
-* Hedehusene som andet lager (`afdeling` findes, men der er ingen vælger i UI'et)
-* Stregkodescanning med telefonens kamera (`ean` ligger klar til det)
-* Automatisk prishentning fra Solar
 * Sammenlægning af dubletter i kataloget
 * PDF-eksport (kun CSV pt.)
 * Forventet leveringsdato på bestillinger (`forventet` findes i tabellen, men bruges ikke)
+* QR-koder på etiketterne (EAN-13 dækker de 223 varer der har et nummer)
+
+## Før udrulning
+
+Giv appen til to eller tre teknikere i en uge i demo-tilstand, og se hvor de går i stå.
+Én times observation siger mere end enhver funktionsliste — det kan vise sig, at det der
+bremser dem, er noget helt andet end det vi har bygget.

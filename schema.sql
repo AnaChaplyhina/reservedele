@@ -20,6 +20,7 @@ create table if not exists materialer (
   pris        numeric(10,2),
   minimum     numeric(10,2) default 0,    -- 0 = advar kun ved udsolgt
   aliaser     text[] default '{}',         -- søgeord på hvilket som helst sprog
+  oprettet_af text,                        -- initialer på den der oprettede varen
   status      text default 'ukurateret' check (status in ('ukurateret','kurateret')),
   created_at  timestamptz default now()
 );
@@ -420,3 +421,14 @@ where not exists (
 
 -- To rækker i regnearket har en ugyldig kategorikode (kyrillisk 'А' og en tom).
 -- De ligger nu uden kategori — find dem i appen med filteret "Uden kategori".
+
+-- ---------- 10. Historik pr. vare, med løbende saldo ----------
+-- Svarer til det appen viser når man klikker på en vare i lageret.
+create or replace view v_historik as
+select b.materiale_id, b.dato, b.art, b.antal, b.initialer, b.note, b.afdeling,
+       u.navn as udstyr,
+       sum(b.antal) over (partition by b.materiale_id, b.afdeling
+                          order by b.dato, b.id) as saldo
+from bevaegelser b
+left join udstyr u on u.id = b.udstyr_id
+order by b.materiale_id, b.dato, b.id;

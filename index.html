@@ -113,6 +113,24 @@ tr:last-child td{border-bottom:0}
 .warn{background:#fff8e6;border:1px solid #ecd58c;border-radius:var(--r);padding:10px 14px;font-size:12.5px;margin-bottom:20px}
 .ordbox{background:var(--beige-dark);border-radius:var(--r);padding:14px 16px;font:400 13px/1.7 Raleway;white-space:pre-wrap;margin:12px 0 4px}
 input[type=checkbox]{width:auto;padding:0;accent-color:#008545}
+.medscan{display:flex;gap:8px;align-items:flex-start}
+.medscan .combo,.medscan>input{flex:1;min-width:0}
+.scanbtn{flex:none;padding:11px 14px}
+.navn-knap{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.navn-knap:hover{text-decoration:underline;text-underline-offset:3px}
+.histbox{background:var(--beige);border-radius:var(--r);padding:14px 16px;margin:2px 0}
+.histbox table{font-size:13px}
+.histbox td,.histbox th{padding:7px 8px}
+.plus{color:var(--green);font-weight:500}
+.modal{position:fixed;inset:0;background:rgba(8,38,0,.62);z-index:80;display:flex;
+  align-items:center;justify-content:center;padding:20px}
+.modal[hidden]{display:none}
+.modalbox{background:var(--beige);border-radius:var(--r);padding:22px;max-width:460px;width:100%}
+#scanvideo{width:100%;border-radius:var(--r);background:#000;aspect-ratio:4/3;object-fit:cover}
+@media print{
+  body{background:#fff}
+  header,nav,.filters,.sec,#toast,.modal,.warn,.adm-only{display:none !important}
+}
 #toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,90px);background:var(--green-dark);color:var(--beige);
   padding:13px 22px;border-radius:var(--r);font-size:14px;z-index:60;transition:transform .25s ease;max-width:92vw}
 #toast.on{transform:translate(-50%,0)}
@@ -165,9 +183,12 @@ input[type=checkbox]{width:auto;padding:0;accent-color:#008545}
       </div>
       <div class="f">
         <label class="lab" for="q_mat"><span data-i="f_mat"></span><span class="unit" id="u_enhed"></span></label>
-        <div class="combo" id="c_mat">
-          <input id="q_mat" role="combobox" aria-expanded="false" aria-autocomplete="list" autocomplete="off">
-          <ul class="opts" role="listbox" hidden></ul>
+        <div class="medscan">
+          <div class="combo" id="c_mat">
+            <input id="q_mat" role="combobox" aria-expanded="false" aria-autocomplete="list" autocomplete="off">
+            <ul class="opts" role="listbox" hidden></ul>
+          </div>
+          <button class="btn alt sm scanbtn" data-scan="q_mat"></button>
         </div>
         <div class="sml" id="matinfo" style="margin-top:7px"></div>
       </div>
@@ -198,11 +219,17 @@ input[type=checkbox]{width:auto;padding:0;accent-color:#008545}
   <p class="sub" id="lag_sub"></p>
   <div class="panel">
     <div class="filters">
-      <div class="f grow"><label class="lab" for="l_sog" data-i="lag_sog"></label><input id="l_sog" autocomplete="off"></div>
+      <div class="f grow"><label class="lab" for="l_sog" data-i="lag_sog"></label>
+        <div class="medscan">
+          <input id="l_sog" autocomplete="off">
+          <button class="btn alt sm scanbtn" data-scan="l_sog"></button>
+        </div></div>
       <div class="f"><label class="lab" for="l_kat" data-i="lag_kat"></label><select id="l_kat"></select></div>
       <div class="f"><label class="lab" for="l_sort" data-i="lag_sort"></label><select id="l_sort"></select></div>
       <div class="f"><label class="lab" for="l_vis" data-i="lag_vis"></label><select id="l_vis"></select></div>
       <button class="btn sm adm-only" id="l_ny"></button>
+      <button class="btn alt sm adm-only" id="p_etiket"></button>
+      <button class="btn alt sm adm-only" id="p_optael"></button>
     </div>
     <table><thead><tr>
       <th data-i="t_vare"></th>
@@ -239,9 +266,12 @@ input[type=checkbox]{width:auto;padding:0;accent-color:#008545}
     <div class="panel">
       <div class="f">
         <label class="lab" for="q_ind"><span data-i="f_mat"></span><span class="unit" id="u_ind"></span></label>
-        <div class="combo" id="c_ind">
-          <input id="q_ind" role="combobox" aria-expanded="false" aria-autocomplete="list" autocomplete="off">
-          <ul class="opts" role="listbox" hidden></ul>
+        <div class="medscan">
+          <div class="combo" id="c_ind">
+            <input id="q_ind" role="combobox" aria-expanded="false" aria-autocomplete="list" autocomplete="off">
+            <ul class="opts" role="listbox" hidden></ul>
+          </div>
+          <button class="btn alt sm scanbtn" data-scan="q_ind"></button>
         </div>
       </div>
       <div class="three">
@@ -308,6 +338,16 @@ input[type=checkbox]{width:auto;padding:0;accent-color:#008545}
 </main>
 
 <div id="toast"></div>
+
+<!-- ===================== SCANNER ===================== -->
+<div class="modal" id="scanmodal" hidden>
+  <div class="modalbox">
+    <div class="lab" data-i="scan_h" style="margin-bottom:12px"></div>
+    <video id="scanvideo" playsinline muted></video>
+    <div class="sml" id="scanstatus" style="margin:10px 0 14px;min-height:18px"></div>
+    <button class="btn alt" id="scanluk"></button>
+  </div>
+</div>
 
 <script>
 /* ==================== CONFIG ==================== */
@@ -414,6 +454,17 @@ const I18N = {
   gem:"Gem",godkend:"Godkend",ret:"Ret",slet:"Slet",luk:"Luk",optael:"Optæl",
   gemt2:"Gemt",slettet:"Slettet",optalt:"Beholdning rettet",mangler_da:"Skriv den danske type først",
   tom:"Ingen registreringer i perioden.",
+  scan:"Scan",scan_h:"Hold stregkoden foran kameraet",scan_luk:"Luk kamera",
+  scan_ukendt:"Ukendt stregkode — den er skrevet i søgefeltet",
+  scan_ustottet:"Denne browser kan ikke scanne. Brug Chrome på Android, eller skriv nummeret.",
+  scan_naegtet:"Kameraet blev afvist. Tillad adgang i browserens indstillinger.",
+  hist:"Historik",hist_tom:"Ingen bevægelser endnu.",hist_saldo:"Saldo",
+  art_forbrug:"Forbrug",art_modtagelse:"Modtaget",art_optaelling:"Optælling",
+  oprettet_af:"Oprettet af",af:"af",
+  print_etiket:"Print hyldeetiketter",print_optael:"Print optællingsliste",
+  p_etiket_h:"Hyldeetiketter",p_optael_h:"Optællingsliste",
+  p_optalt:"Optalt",p_hylde:"Hylde",p_intet:"Ingen varer i det valgte filter.",
+  p_vejl:"Skriv det talte antal i højre kolonne, og indtast det bagefter under Lager → Optæl.",
   demo:"DEMO — intet gemmes, alt nulstilles ved genindlæsning. Udfyld CONFIG i toppen af index.html for at koble på Supabase. Adminkode i demo: godik"},
 
  pl:{kicker:"Godik · Power "+AFDELING, apptitle:"Części zamienne i magazyn",
@@ -459,6 +510,17 @@ const I18N = {
   gem:"Zapisz",godkend:"Zatwierdź",ret:"Popraw",slet:"Usuń",luk:"Zamknij",optael:"Policz",
   gemt2:"Zapisano",slettet:"Usunięto",optalt:"Stan poprawiony",mangler_da:"Najpierw wpisz duński typ",
   tom:"Brak wpisów w okresie.",
+  scan:"Skanuj",scan_h:"Przyłóż kod kreskowy do kamery",scan_luk:"Zamknij kamerę",
+  scan_ukendt:"Nieznany kod — wpisany do pola wyszukiwania",
+  scan_ustottet:"Ta przeglądarka nie skanuje. Użyj Chrome na Androidzie lub wpisz numer.",
+  scan_naegtet:"Brak dostępu do kamery. Zezwól w ustawieniach przeglądarki.",
+  hist:"Historia",hist_tom:"Brak ruchów.",hist_saldo:"Stan",
+  art_forbrug:"Zużycie",art_modtagelse:"Przyjęto",art_optaelling:"Inwentaryzacja",
+  oprettet_af:"Dodane przez",af:"przez",
+  print_etiket:"Drukuj etykiety",print_optael:"Drukuj listę do policzenia",
+  p_etiket_h:"Etykiety na półki",p_optael_h:"Lista do policzenia",
+  p_optalt:"Policzono",p_hylde:"Półka",p_intet:"Brak pozycji w wybranym filtrze.",
+  p_vejl:"Wpisz policzoną ilość w prawej kolumnie, a potem wprowadź ją w Magazyn → Policz.",
   demo:"DEMO — nic nie jest zapisywane. Hasło admina w demo: godik"}
 };
 let lang = "da", admin = false;
@@ -569,7 +631,7 @@ const db = {
     await sb.from("bestillinger").update(p).eq("id",id); }
 };
 
-let MATS=[], UDS=[], BEV=[], ORD=[], retter=null, aaben=null, optaeller=null;
+let MATS=[], UDS=[], BEV=[], ORD=[], retter=null, aaben=null, optaeller=null, historik=null;
 
 /* beholdning = summen af bevægelser. Ikke et felt nogen retter i hånden. */
 const BEH = new Map();
@@ -640,6 +702,8 @@ function Combo(root,cfg){
   document.addEventListener("click", e => { if(!root.contains(e.target)) luk(); });
   return { get id(){ return valgtId; },
     ryd(){ valgtId=null; inp.value=""; luk(); },
+    /* bruges af scanneren: sæt varen direkte uden at skrive */
+    saet(o){ valgtId = o.id; inp.value = cfg.label(o); luk(); cfg.onPick && cfg.onPick(valgtId); },
     sprog(){ if(valgtId){ const o = cfg.items().find(x => String(x.id)===String(valgtId)); if(o) inp.value = cfg.label(o); }
              inp.placeholder = cfg.ph(); } };
 }
@@ -664,9 +728,13 @@ function visMatInfo(el,id){
 }
 const comboMat = Combo($("#c_mat"), matBase({
   create: async navn => {          /* teknikerens ord i HANS sprogfelt, aldrig i det danske */
+    let af = $("#f_init").value.trim().toUpperCase();
+    if(!af) af = (prompt(t("f_init")) || "").trim().toUpperCase();
     const r = {type_da:"",type_pl:"",model:"",producent:"",elnr:"",ean:"",modelnr:"",
-      leverandorer:[],kategori:"",placering:"",enhed:"stk",pris:null,minimum:0,aliaser:[],status:"ukurateret"};
+      leverandorer:[],kategori:"",placering:"",enhed:"stk",pris:null,minimum:0,aliaser:[],
+      oprettet_af:af, status:"ukurateret"};
     r[lang==="pl" ? "type_pl" : "type_da"] = navn;
+    if(af && !$("#f_init").value.trim()) $("#f_init").value = af;
     const ny = await db.addMat(r); MATS = await db.mats(); tegnKoe(); return ny;
   },
   onPick: id => { const m = byId(MATS,id);
@@ -710,6 +778,10 @@ function tekster(){
   $("#save").textContent = t("save"); $("#i_save").textContent = t("mo_modtag");
   $("#d_clear").textContent = t("clear"); $("#csv").textContent = t("csv");
   $("#l_ny").textContent = t("ny_vare");
+  $("#p_etiket").textContent = t("print_etiket");
+  $("#p_optael").textContent = t("print_optael");
+  $("#scanluk").textContent = t("scan_luk");
+  document.querySelectorAll(".scanbtn").forEach(b => b.textContent = t("scan"));
   $("#admBtn").textContent = admin ? t("adm_ud") : t("adm_ind");
   $("#demo").textContent = t("demo");
   $("#lag_sub").textContent = admin ? t("lag_s_adm") : t("lag_s");
@@ -785,12 +857,15 @@ function tegnLager(){
   $("#lagerliste").innerHTML = liste.length ? liste.map(m => {
     if(admin && String(m.id) === String(aaben)) return kortRaekke(m,7);
     if(admin && String(m.id) === String(optaeller)) return optaelRaekke(m,7);
+    if(String(m.id) === String(historik)) return historikRaekke(m,7);
     const n = niveau(m);
     return `<tr>
-      <td><span class="dot ${n==="ok"?"":n}"></span>${esc(matNavn(m))}
+      <td><span class="dot ${n==="ok"?"":n}"></span><button class="navn-knap"
+          onclick="historik='${m.id}';aaben=null;optaeller=null;tegnLager()">${esc(matNavn(m))}</button>
         ${manglerDa(m)?`<span class="flagpl">${esc(m.type_pl||"")}</span>`:""}
         ${erBestilt(m.id)?`<span class="tag ord">${esc(t("be_bestilt"))}</span>`:""}
         ${m.placering?`<span class="sml"> · ${esc(m.placering)}</span>`:""}
+        ${m.oprettet_af?`<span class="sml"> · ${esc(t("af"))} ${esc(m.oprettet_af)}</span>`:""}
         ${arr(m.aliaser).length?`<div>${arr(m.aliaser).map(a=>`<span class="alias">${esc(a)}</span>`).join("")}</div>`:""}</td>
       <td class="hide-s mono">${numre(m).map(esc).join("<br>")||"—"}</td>
       <td class="hide-s adm-only" ${admin?"":'hidden'}>${esc(arr(m.leverandorer).join(", ")||"—")}</td>
@@ -884,7 +959,8 @@ $("#l_ny").onclick = async () => {
 function tegnKoe(){
   const koe = MATS.filter(m => m.status !== "kurateret" || manglerDa(m));
   $("#koeliste").innerHTML = koe.length ? koe.map(m => String(m.id) === String(aaben) ? kortRaekke(m,2)
-    : `<tr><td><span class="flagpl"></span>${esc((m.type_pl || m.type_da || "—")+" "+(m.model||""))}</td>
+    : `<tr><td><span class="flagpl"></span>${esc((m.type_pl || m.type_da || "—")+" "+(m.model||""))}
+        ${m.oprettet_af?`<div class="sml">${esc(t("oprettet_af"))}: ${esc(m.oprettet_af)}</div>`:""}</td>
        <td class="num"><button class="txt" onclick="aaben='${m.id}';tegnKoe()">${t("godkend")}</button></td></tr>`
   ).join("") : `<tr><td class="empty">${t("ko_tom")}</td></tr>`;
   const b = $("nav [data-t=koe]"); b.textContent = t("tab_koe");
@@ -1086,6 +1162,194 @@ async function gemRet(id){
   BEV = await db.bev(); retter = null; alt(); toast(t("gemt2"));
 }
 async function sletBev(id){ await db.delBev(id); BEV = await db.bev(); alt(); toast(t("slettet")); }
+
+/* ==================== STREGKODESCANNER ====================
+   Bruger browserens indbyggede BarcodeDetector — intet bibliotek hentes.
+   Virker i Chrome/Edge (også på Android). Ellers vises en besked,
+   og man skriver nummeret som før. */
+let scanStream = null, scanStop = false, scanMaal = null;
+async function aabnScanner(maalId){
+  scanMaal = maalId;
+  if(!("BarcodeDetector" in window)){ toast(t("scan_ustottet")); return; }
+  const modal = $("#scanmodal"), video = $("#scanvideo");
+  $("#scanstatus").textContent = "";
+  modal.hidden = false; scanStop = false;
+  try{
+    scanStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+  }catch(e){ lukScanner(); toast(t("scan_naegtet")); return; }
+  video.srcObject = scanStream;
+  await video.play().catch(()=>{});
+  const det = new window.BarcodeDetector({formats:["ean_13","ean_8","code_128","qr_code"]});
+  (async function loop(){
+    while(!scanStop){
+      try{
+        const fund = await det.detect(video);
+        if(fund && fund.length){ håndterKode(fund[0].rawValue); return; }
+      }catch(e){ /* et enkelt mislykket frame er normalt */ }
+      await new Promise(r => setTimeout(r, 220));
+    }
+  })();
+}
+function lukScanner(){
+  scanStop = true;
+  if(scanStream){ scanStream.getTracks().forEach(x => x.stop()); scanStream = null; }
+  $("#scanvideo").srcObject = null;
+  $("#scanmodal").hidden = true;
+}
+function håndterKode(kode){
+  lukScanner();
+  const m = MATS.find(x => x.ean === kode || x.elnr === kode || x.modelnr === kode);
+  const felt = $("#"+scanMaal);
+  if(!m){
+    if(felt){ felt.value = kode; felt.dispatchEvent(new Event("input",{bubbles:true})); }
+    toast(t("scan_ukendt")); return;
+  }
+  if(scanMaal === "l_sog"){ felt.value = m.ean || matNavn(m); tegnLager(); }
+  else {
+    /* sæt varen direkte i den rigtige combobox */
+    const c = scanMaal === "q_mat" ? comboMat : comboInd;
+    c.saet(m);
+  }
+  toast(matNavn(m));
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest(".scanbtn"); if(!b) return;
+  aabnScanner(b.dataset.scan);
+});
+$("#scanluk").onclick = lukScanner;
+
+/* ==================== HISTORIK PR. VARE ==================== */
+function historikRaekke(m,cols){
+  const raek = BEV.filter(b => String(b.materiale_id) === String(m.id))
+    .slice().sort((a,b) => String(a.dato).localeCompare(String(b.dato)) || (a.id-b.id));
+  let saldo = 0;
+  const linjer = raek.map(b => {
+    saldo += (+b.antal||0);
+    const u = byId(UDS,b.udstyr_id);
+    return `<tr><td>${esc(b.dato)}</td>
+      <td>${esc(t("art_"+b.art))}${u?` · ${esc(u.navn)}`:""}${b.note?` <span class="sml">${esc(b.note)}</span>`:""}</td>
+      <td class="num ${(+b.antal||0)>0?"plus":""}">${(+b.antal||0)>0?"+":""}${tal(b.antal)}</td>
+      <td class="num">${tal(saldo)}</td>
+      <td>${esc(b.initialer||"")}</td></tr>`;
+  }).reverse().join("");
+  return `<tr><td colspan="${cols}"><div class="histbox">
+    <div class="lab" style="margin-bottom:8px">${esc(t("hist"))} · ${esc(matNavn(m))}</div>
+    ${raek.length ? `<table><thead><tr><th>${t("t_dato")}</th><th>${t("t_kat")==="—"?"":""}${t("hist")}</th>
+      <th class="num">${t("t_antal")}</th><th class="num">${t("hist_saldo")}</th><th>${t("t_init")}</th></tr></thead>
+      <tbody>${linjer}</tbody></table>` : `<div class="sml">${t("hist_tom")}</div>`}
+    <button class="txt" style="margin-top:10px" onclick="historik=null;tegnLager()">${t("luk")}</button>
+  </div></td></tr>`;
+}
+
+/* ==================== EAN-13 SOM SVG ====================
+   Til hyldeetiketter: samme stregkode som på varen, så scanneren kan læse den. */
+const EAN_L=["0001101","0011001","0010011","0111101","0100011","0110001","0101111","0111011","0110111","0001011"];
+const EAN_G=["0100111","0110011","0011011","0100001","0011101","0111001","0000101","0010001","0001001","0010111"];
+const EAN_R=["1110010","1100110","1101100","1000010","1011100","1001110","1010000","1000100","1001000","1110100"];
+const EAN_P=["LLLLLL","LLGLGG","LLGGLG","LLGGGL","LGLLGG","LGGLLG","LGGGLL","LGLGLG","LGLGGL","LGGLGL"];
+function ean13gyldig(s){
+  if(!/^\d{13}$/.test(s)) return false;
+  let sum = 0;
+  for(let i=0;i<12;i++) sum += (+s[i]) * (i%2 ? 3 : 1);
+  return (10 - sum%10) % 10 === +s[12];
+}
+function ean13svg(s,h){
+  if(!ean13gyldig(s)) return "";
+  const d = s.split("").map(Number), pat = EAN_P[d[0]];
+  let bits = "101";
+  for(let i=1;i<=6;i++) bits += (pat[i-1]==="L" ? EAN_L : EAN_G)[d[i]];
+  bits += "01010";
+  for(let i=7;i<=12;i++) bits += EAN_R[d[i]];
+  bits += "101";
+  const bar = [];
+  for(let i=0;i<bits.length;i++) if(bits[i]==="1")
+    bar.push(`<rect x="${i}" y="0" width="1" height="${h}" fill="#000"/>`);
+  return `<svg viewBox="0 0 95 ${h}" width="100%" height="${h}" preserveAspectRatio="none"
+    shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${bar.join("")}</svg>`;
+}
+
+/* ==================== PRINT ====================
+   Printer altid PRÆCIS den liste der står på skærmen — så filtrene bestemmer,
+   om du printer én hylde, én kategori eller hele lageret. */
+function filtreretListe(){
+  const q = $("#l_sog").value.trim(), kat = $("#l_kat").value, vis = $("#l_vis").value;
+  let l = MATS.filter(m => matcher(m,q) && iKategori(m,kat));
+  if(vis === "lav") l = l.filter(m => ["low","nul"].includes(niveau(m)));
+  if(vis === "nul") l = l.filter(m => niveau(m) === "nul");
+  if(vis === "bestilt") l = l.filter(m => erBestilt(m.id));
+  return l;
+}
+function printVindue(titel, krop, css){
+  const w = window.open("", "_blank");
+  if(!w){ toast(t("scan_naegtet")); return; }
+  w.document.write(`<!DOCTYPE html><html lang="${lang}"><head><meta charset="utf-8">
+    <title>${esc(titel)}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+      *{box-sizing:border-box}
+      body{font:400 12px/1.4 Raleway,sans-serif;color:#082600;margin:16px}
+      h1{font:300 20px Raleway;margin:0 0 4px}
+      .meta{font-size:11px;color:#66705F;margin-bottom:16px}
+      ${css}
+      @media print{ body{margin:0} @page{margin:10mm} }
+    </style></head><body>
+    <h1>${esc(titel)}</h1>
+    <div class="meta">Power ${esc(AFDELING)} · ${idag()}</div>
+    ${krop}
+    <script>setTimeout(function(){window.print()},600)<\/script>
+    </body></html>`);
+  w.document.close();
+}
+function printEtiketter(){
+  const l = filtreretListe().slice()
+    .sort((a,b) => (a.placering||"zzz").localeCompare(b.placering||"zzz","da"));
+  if(!l.length){ toast(t("p_intet")); return; }
+  const krop = `<div class="ark">` + l.map(m => `
+    <div class="etiket">
+      <div class="plads">${esc(m.placering || "—")}</div>
+      <div class="navn">${esc(matNavn(m))}</div>
+      <div class="nr">${m.elnr ? "EL "+esc(m.elnr) : esc(m.modelnr||"")}</div>
+      <div class="kode">${ean13svg(m.ean||"", 28) || ""}</div>
+      <div class="ean">${esc(m.ean||"")}</div>
+    </div>`).join("") + `</div>`;
+  printVindue(t("p_etiket_h"), krop, `
+    .ark{display:grid;grid-template-columns:repeat(3,1fr);gap:4mm}
+    .etiket{border:1px solid #D7DBD0;border-radius:2px;padding:3mm;height:32mm;
+      display:flex;flex-direction:column;page-break-inside:avoid}
+    .plads{font:600 13px Raleway;letter-spacing:.04em}
+    .navn{font-size:11px;line-height:1.25;margin:1mm 0;flex:1;overflow:hidden}
+    .nr{font-size:10px;color:#66705F}
+    .kode{margin-top:auto}
+    .ean{font-size:9px;letter-spacing:.14em;text-align:center;color:#66705F}`);
+}
+function printOptaelling(){
+  const l = filtreretListe().slice()
+    .sort((a,b) => (a.placering||"zzz").localeCompare(b.placering||"zzz","da")
+      || matNavn(a).localeCompare(matNavn(b),"da"));
+  if(!l.length){ toast(t("p_intet")); return; }
+  const krop = `<div class="vejl">${esc(t("p_vejl"))}</div>
+    <table><thead><tr>
+      <th>${t("p_hylde")}</th><th>${t("t_vare")}</th><th>${t("c_elnr")}</th>
+      <th class="n">${t("t_beh")}</th><th class="n b">${t("p_optalt")}</th></tr></thead>
+    <tbody>` + l.map(m => `<tr>
+      <td>${esc(m.placering||"")}</td>
+      <td>${esc(matNavn(m))}</td>
+      <td class="mono">${esc(m.elnr||m.modelnr||"")}</td>
+      <td class="n">${harBevaegelse(m.id) ? tal(beholdning(m.id))+" "+esc(m.enhed) : "—"}</td>
+      <td class="n b"></td></tr>`).join("") + `</tbody></table>`;
+  printVindue(t("p_optael_h"), krop, `
+    .vejl{font-size:11px;margin-bottom:10px}
+    table{width:100%;border-collapse:collapse}
+    th{text-align:left;font:600 9px Raleway;letter-spacing:.1em;text-transform:uppercase;
+      color:#66705F;border-bottom:1px solid #082600;padding:5px 6px}
+    td{padding:6px;border-bottom:1px solid #E4E7DE}
+    .n{text-align:right}
+    .b{width:26mm;border-left:1px solid #D7DBD0;background:#F4F4EF}
+    .mono{font-size:11px}
+    tr{page-break-inside:avoid}`);
+}
+$("#p_etiket").onclick = printEtiketter;
+$("#p_optael").onclick = printOptaelling;
 
 /* ==================== ADGANG + FANER ==================== */
 $("#langs").onclick = e => {
