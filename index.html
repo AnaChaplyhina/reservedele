@@ -456,7 +456,9 @@ const I18N = {
   tom:"Ingen registreringer i perioden.",
   scan:"Scan",scan_h:"Hold stregkoden foran kameraet",scan_luk:"Luk kamera",
   scan_ukendt:"Ukendt stregkode — den er skrevet i søgefeltet",
-  scan_ustottet:"Denne browser kan ikke scanne. Brug Chrome på Android, eller skriv nummeret.",
+  scan_henter:"Henter scanner…",
+  scan_fejl:"Scanneren kunne ikke hentes. Tjek netforbindelsen, eller skriv nummeret.",
+  scan_https:"Scanning kræver https. Åbn siden via github.io eller godik.nu — ikke som lokal fil.",
   scan_naegtet:"Kameraet blev afvist. Tillad adgang i browserens indstillinger.",
   hist:"Historik",hist_tom:"Ingen bevægelser endnu.",hist_saldo:"Saldo",
   art_forbrug:"Forbrug",art_modtagelse:"Modtaget",art_optaelling:"Optælling",
@@ -512,7 +514,9 @@ const I18N = {
   tom:"Brak wpisów w okresie.",
   scan:"Skanuj",scan_h:"Przyłóż kod kreskowy do kamery",scan_luk:"Zamknij kamerę",
   scan_ukendt:"Nieznany kod — wpisany do pola wyszukiwania",
-  scan_ustottet:"Ta przeglądarka nie skanuje. Użyj Chrome na Androidzie lub wpisz numer.",
+  scan_henter:"Ładowanie skanera…",
+  scan_fejl:"Nie udało się załadować skanera. Sprawdź połączenie lub wpisz numer.",
+  scan_https:"Skanowanie wymaga https. Otwórz stronę przez github.io lub godik.nu.",
   scan_naegtet:"Brak dostępu do kamery. Zezwól w ustawieniach przeglądarki.",
   hist:"Historia",hist_tom:"Brak ruchów.",hist_saldo:"Stan",
   art_forbrug:"Zużycie",art_modtagelse:"Przyjęto",art_optaelling:"Inwentaryzacja",
@@ -1164,39 +1168,71 @@ async function gemRet(id){
 async function sletBev(id){ await db.delBev(id); BEV = await db.bev(); alt(); toast(t("slettet")); }
 
 /* ==================== STREGKODESCANNER ====================
-   Bruger browserens indbyggede BarcodeDetector — intet bibliotek hentes.
-   Virker i Chrome/Edge (også på Android). Ellers vises en besked,
-   og man skriver nummeret som før. */
-let scanStream = null, scanStop = false, scanMaal = null;
+   To veje, i den rækkefølge:
+   1) browserens indbyggede BarcodeDetector — findes i Chrome på Android og macOS,
+      men IKKE på Windows, hvor styresystemet ikke har et stregkode-API.
+   2) ellers hentes ZXing fra CDN — men først når man trykker Scan, så siden
+      ikke bliver tungere for dem der aldrig scanner.
+   Begge kræver HTTPS. Åbner man filen direkte fra skrivebordet, nægter
+   browseren adgang til kameraet. */
+let scanStream = null, scanStop = false, scanMaal = null, zxReader = null;
+
+function hentZxing(){
+  if(window.ZXing) return Promise.resolve(true);
+  return new Promise(res => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js";
+    s.onload = () => res(!!window.ZXing);
+    s.onerror = () => res(false);
+    document.head.appendChild(s);
+  });
+}
 async function aabnScanner(maalId){
-  scanMaal = maalId;
-  if(!("BarcodeDetector" in window)){ toast(t("scan_ustottet")); return; }
-  const modal = $("#scanmodal"), video = $("#scanvideo");
-  $("#scanstatus").textContent = "";
-  modal.hidden = false; scanStop = false;
+  scanMaal = maalId; scanStop = false;
+  const modal = $("#scanmodal"), video = $("#scanvideo"), status = $("#scanstatus");
+  if(!window.isSecureContext){ toast(t("scan_https")); return; }
+  modal.hidden = false; status.textContent = "";
+
+  if("BarcodeDetector" in window){
+    try{ scanStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}}); }
+    catch(e){ lukScanner(); toast(t("scan_naegtet")); return; }
+    video.srcObject = scanStream;
+    await video.play().catch(()=>{});
+    const det = new window.BarcodeDetector({formats:["ean_13","ean_8","code_128","qr_code"]});
+    (async function loop(){
+      while(!scanStop){
+        try{
+          const fund = await det.detect(video);
+          if(fund && fund.length){ haandterKode(fund[0].rawValue); return; }
+        }catch(e){ /* et enkelt mislykket frame er normalt */ }
+        await new Promise(r => setTimeout(r, 220));
+      }
+    })();
+    return;
+  }
+
+  status.textContent = t("scan_henter");
+  const ok = await hentZxing();
+  if(!ok){ lukScanner(); toast(t("scan_fejl")); return; }
+  if(scanStop) return;
+  status.textContent = "";
   try{
-    scanStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-  }catch(e){ lukScanner(); toast(t("scan_naegtet")); return; }
-  video.srcObject = scanStream;
-  await video.play().catch(()=>{});
-  const det = new window.BarcodeDetector({formats:["ean_13","ean_8","code_128","qr_code"]});
-  (async function loop(){
-    while(!scanStop){
-      try{
-        const fund = await det.detect(video);
-        if(fund && fund.length){ håndterKode(fund[0].rawValue); return; }
-      }catch(e){ /* et enkelt mislykket frame er normalt */ }
-      await new Promise(r => setTimeout(r, 220));
-    }
-  })();
+    zxReader = new window.ZXing.BrowserMultiFormatReader();
+    await zxReader.decodeFromConstraints({video:{facingMode:"environment"}}, video,
+      (res, err) => { if(res && !scanStop) haandterKode(res.getText()); });
+  }catch(e){ lukScanner(); toast(t("scan_naegtet")); }
 }
 function lukScanner(){
   scanStop = true;
+  if(zxReader){ try{ zxReader.reset(); }catch(e){} zxReader = null; }
   if(scanStream){ scanStream.getTracks().forEach(x => x.stop()); scanStream = null; }
-  $("#scanvideo").srcObject = null;
+  const v = $("#scanvideo");
+  if(v.srcObject){ v.srcObject.getTracks().forEach(x => x.stop()); v.srcObject = null; }
+  $("#scanstatus").textContent = "";
   $("#scanmodal").hidden = true;
 }
-function håndterKode(kode){
+function haandterKode(kode){
+  kode = String(kode).trim();
   lukScanner();
   const m = MATS.find(x => x.ean === kode || x.elnr === kode || x.modelnr === kode);
   const felt = $("#"+scanMaal);
@@ -1205,11 +1241,7 @@ function håndterKode(kode){
     toast(t("scan_ukendt")); return;
   }
   if(scanMaal === "l_sog"){ felt.value = m.ean || matNavn(m); tegnLager(); }
-  else {
-    /* sæt varen direkte i den rigtige combobox */
-    const c = scanMaal === "q_mat" ? comboMat : comboInd;
-    c.saet(m);
-  }
+  else (scanMaal === "q_mat" ? comboMat : comboInd).saet(m);
   toast(matNavn(m));
 }
 document.addEventListener("click", e => {
