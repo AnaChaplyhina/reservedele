@@ -30,14 +30,17 @@ create index if not exists mat_kat_idx  on materialer (kategori);
 
 -- ---------- 2. Udstyr (det der repareres) ----------
 create table if not exists udstyr (
-  id         bigint generated always as identity primary key,
-  navn       text not null,               -- pr. ENHED: "Generator 45", ikke "generatorer"
-  type       text,                        -- tavle / generator / lystårn / køletrailer / andet
-  serienr    text,
-  afdeling   text default 'Ejby',
-  aktiv      boolean default true,
-  created_at timestamptz default now()
+  id          bigint generated always as identity primary key,
+  navn        text not null,              -- anlægsnummeret fra BC, fx 'EL1640'
+  type        text,                       -- generator / lystårn / køletrailer / tavle / andet
+  model       text,                       -- BC's Beskrivelse, fx 'Generator 250 kva'
+  ressourcenr text,                       -- BC's Ressourcenr., fx '56250'
+  serienr     text,
+  afdeling    text default 'Ejby',
+  aktiv       boolean default true,
+  created_at  timestamptz default now()
 );
+create index if not exists udstyr_navn_idx on udstyr (navn);
 
 -- ---------- 3. Bevægelser ----------
 -- Beholdningen er ikke et felt man retter. Den er summen af denne tabel.
@@ -432,3 +435,94 @@ select b.materiale_id, b.dato, b.art, b.antal, b.initialer, b.note, b.afdeling,
 from bevaegelser b
 left join udstyr u on u.id = b.udstyr_id
 order by b.materiale_id, b.dato, b.id;
+
+-- ============================================================
+--  11. Udstyr: 79 generatorer.
+--      De 21 med ressourcenr. 56060 kommer fra BC-eksporten 'Anlægsaktiver'.
+--      Resten er læst fra skærmbilleder og kan mangle enheder.
+--      Lystårne, køletrailere og tavler er IKKE med endnu.
+-- ============================================================
+insert into udstyr (navn, type, model, ressourcenr, afdeling)
+select v.navn, v.type, v.model, v.ressourcenr, v.afdeling
+from (values
+  ('BK7461', 'Generator', 'Generator 60 kVA, på trailer', '56060', 'Ejby'),
+  ('BK7463', 'Generator', 'Generator 60 kVA, på trailer', '56060', 'Ejby'),
+  ('BK7466', 'Generator', 'Generator 60 kVA, på trailer', '56060', 'Ejby'),
+  ('DM5926', 'Generator', 'Generator 60 kVA, på trailer', '56060', 'Ejby'),
+  ('DM5929', 'Generator', 'Generator 60 kVA, på trailer', '56060', 'Ejby'),
+  ('DM5932', 'Generator', 'Generator 60 kVA, på trailer', '56060', 'Ejby'),
+  ('DN3158', 'Generator', 'Generator 60 kVA, på trailer', '56060', 'Ejby'),
+  ('DN3229', 'Generator', 'Generator 60 kVA, på trailer', '56060', 'Ejby'),
+  ('EL372', 'Generator', 'Generator 60 kva mobil super', '56060', 'Ejby'),
+  ('EL373', 'Generator', 'Generator 60 kva mobil super', '56060', 'Ejby'),
+  ('EL374', 'Generator', 'Generator 60 kva mobil super', '56060', 'Ejby'),
+  ('EL375', 'Generator', 'Generator 60 kva mobil super', '56060', 'Ejby'),
+  ('EX9881', 'Generator', 'Generator 60 kVA, på trailer', '56060', 'Ejby'),
+  ('EX9882', 'Generator', 'Generator 60 kVA, på trailer', '56060', 'Ejby'),
+  ('EX9883', 'Generator', 'Generator 60 kVA, på trailer', '56060', 'Ejby'),
+  ('EX9886', 'Generator', 'Generator 60 kVA, på trailer', '56060', 'Ejby'),
+  ('EX9887', 'Generator', 'Generator 60 kVA, på trailer', '56060', 'Ejby'),
+  ('EX9888', 'Generator', 'Generator 60 kVA, på trailer', '56060', 'Ejby'),
+  ('EX9891', 'Generator', 'Generator 60 kVA, på trailer', '56060', 'Ejby'),
+  ('P1255', 'Generator', 'Generator 60 kva super silent', '56060', 'Ejby'),
+  ('P1294', 'Generator', 'Generator 60 kva super silent', '56060', 'Ejby'),
+  ('BL5825', 'Generator', 'Generator 100 kva super silent', '56100', 'Ejby'),
+  ('BL5828', 'Generator', 'Generator 100 kva super silent', '56100', 'Ejby'),
+  ('BL5829', 'Generator', 'Generator 100 kva super silent', '56100', 'Ejby'),
+  ('BL5830', 'Generator', 'Generator 100 kva ATS', '56100', 'Ejby'),
+  ('EL390', 'Generator', 'Generator 150 kva', '56150', 'Ejby'),
+  ('EL391', 'Generator', 'Generator 150 kva', '56150', 'Ejby'),
+  ('EL392', 'Generator', 'Generator 150 kva', '56150', 'Ejby'),
+  ('EL393', 'Generator', 'Generator 150 kva', '56150', 'Ejby'),
+  ('EL394', 'Generator', 'Generator 150 kva', '56150', 'Ejby'),
+  ('EL395', 'Generator', 'Generator 150 kva', '56150', 'Ejby'),
+  ('EL396', 'Generator', 'Generator 150 kva', '56150', 'Ejby'),
+  ('EL397', 'Generator', 'Generator 150 kva', '56150', 'Ejby'),
+  ('EL398', 'Generator', 'Generator 150 kva', '56150', 'Ejby'),
+  ('EL399', 'Generator', 'Generator 150 kva', '56150', 'Ejby'),
+  ('BL5831', 'Generator', 'Generator 150 kva, på trailer', '56151', 'Ejby'),
+  ('BL5832', 'Generator', 'Generator 150 kva, på trailer', '56151', 'Ejby'),
+  ('BL5833', 'Generator', 'Generator 150 kva, på trailer', '56151', 'Ejby'),
+  ('BL5840', 'Generator', 'Generator 150 kva, på trailer', '56151', 'Ejby'),
+  ('BM5653', 'Generator', 'Generator 150 kva, på trailer', '56151', 'Ejby'),
+  ('CM7912', 'Generator', 'Generator 150 kVA, på trailer', '56151', 'Ejby'),
+  ('CM7913', 'Generator', 'Generator 150 kVA, på trailer', '56151', 'Ejby'),
+  ('CM7914', 'Generator', 'Generator 150 kVA, på trailer', '56151', 'Ejby'),
+  ('CM7915', 'Generator', 'Generator 150 kVA, på trailer', '56151', 'Ejby'),
+  ('CM7916', 'Generator', 'Generator 150 kVA, på trailer', '56151', 'Ejby'),
+  ('ES6603', 'Generator', 'Generator 200 kva Twin', '56202', 'Ejby'),
+  ('EX6865', 'Generator', 'Generator 200 kva Twin', '56202', 'Ejby'),
+  ('EL1640', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL1641', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL1642', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL1643', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL1644', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL1645-S', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL1646', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL1647', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL1648', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL1649', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL1650', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL1651', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL1652', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL1653', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL1654', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL1655', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL1656', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL1657', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL1658', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL1659', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL382', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL383', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL384', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL385', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL386', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL387', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL388', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EL389', 'Generator', 'Generator 250 kva', '56250', 'Ejby'),
+  ('EH7904', 'Generator', 'Generator 300 kva Twin', '56302', 'Ejby'),
+  ('EH7905', 'Generator', 'Generator 300 kva Twin', '56302', 'Ejby'),
+  ('FB4656', 'Generator', 'Generator 300 kva Twin', '56302', 'Ejby'),
+  ('FB4657', 'Generator', 'Generator 2x550 kva twinsæt', '56552', 'Ejby')
+) as v(navn, type, model, ressourcenr, afdeling)
+where not exists (select 1 from udstyr u where u.navn = v.navn);
