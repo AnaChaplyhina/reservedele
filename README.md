@@ -127,11 +127,19 @@ valgte `pakning` hvor værkstedet siger `tætning`. Kataloget lærer værkstedet
 Knappen **Scan** står ved søgefeltet på Registrer, Lager og Modtagelse. Kameraet
 læser stregkoden, og varen bliver valgt med det samme — 223 af de 257 startvarer har EAN.
 
-Der hentes **intet bibliotek**: appen bruger browserens indbyggede `BarcodeDetector`.
-Det virker i Chrome og Edge, også på Android — altså der hvor teknikerne står.
-I Safari på iPhone findes API'et ikke, og appen siger det ligeud i stedet for at fejle
-i stilhed; man skriver nummeret som før. Scanning kræver HTTPS, så det virker på
-GitHub Pages og godik.nu, men ikke hvis filen åbnes direkte fra skrivebordet.
+Appen prøver to veje i rækkefølge:
+
+1. **Browserens indbyggede `BarcodeDetector`.** Findes i Chrome på Android og macOS.
+   Findes **ikke** på Windows, fordi styresystemet ikke har et stregkode-API — så
+   denne vej fejler på en almindelig kontor-pc, uanset browser.
+2. **ZXing fra CDN.** Hentes først når man trykker Scan, så siden ikke bliver tungere
+   for dem der aldrig scanner. Virker i alle moderne browsere, inkl. Safari på iPhone.
+
+Scanning kræver **HTTPS**: det virker på GitHub Pages og godik.nu, men ikke hvis filen
+åbnes direkte fra skrivebordet. Appen siger det ligeud i stedet for at fejle i stilhed.
+
+Bemærk at et webcam på en pc har svært ved små 1D-stregkoder — scanning er tænkt til
+telefonen, hvor kameraet kan komme tæt på.
 
 Scanner man en ukendt kode, bliver tallet skrevet i søgefeltet — så kan man oprette
 varen med koden i hånden.
@@ -165,6 +173,68 @@ den tærskel der afgør om systemet kommer i drift.
 Nye varer fra teknikerne får `oprettet_af` med initialer — taget fra Initialer-feltet,
 ellers spørger appen. Vises under **Nye varer**, så du ved hvem du skal spørge, hvis
 ordet er uforståeligt.
+
+---
+
+## Udstyrsregistret
+
+2.563 rækker, og de kommer to steder fra.
+
+**Anlægsaktiver fra BC** — én række pr. fysisk enhed, navnet er anlægsnummeret:
+
+| Type | Antal | Ressourcenr. |
+|---|---|---|
+| Tavle (PDU) | 1.943 | 57102–57141, 57211–57216, 57221 |
+| Lystårn | 217 | 50119, 50120, 50125, 50127 |
+| Køletrailer | 169 | 06500, 06540 (Combi), 06550 (Mini) |
+| Generator | 79 | 56060, 56100, 56150, 56151, 56202, 56250, 56302, 56552 |
+| Køle-fryse modul | 60 | 06560 |
+| Batteri | 22 | 56600, 56601, 56602, 56605 |
+| Tilbehør | 5 | 57508 (trådbur, ramme f/eltavle) |
+| Omformer | 3 | 57228, 57229 |
+| Trailer | 2 | 51060 (gardintrailer) |
+
+**Prislisten** — kabler, powerlock og adaptere. De har **intet anlægsnummer**:
+
+| Type | Antal | Varenr. |
+|---|---|---|
+| Kabel | 30 | 57000–57094 |
+| Powerlock | 16 | 57058–57076 |
+| Adapter / fordeler | 16 | 57300–57353 |
+| Måler | 1 | 57105 |
+
+Her er navnet varenummeret, og **forbruget opgøres pr. varetype, ikke pr. stk.**
+Statistikken kan altså sige "vi bruger 4.200 kr om året på 3x32A-kabler", men ikke
+"netop dette kabel er dyrt". Skal det kunne lade sig gøre, må kablerne først mærkes
+fysisk med hvert sit nummer.
+
+Felterne:
+
+* **navn** = anlægsnummer (`EL1614`, `BAT16`, `AB2983`) eller varenummer (`57024`).
+* **model** = beskrivelsen. For lystårne indeholder den også G-/B-nummeret,
+  som teknikerne kender tårnet på — derfor kan der søges på `G23`.
+* **ressourcenr** = BC's Ressourcenr. Søg på `57122` og få alle 450 PDU 63A.
+* **serienr** = Stelnr. fra BC; for køletrailere bruges registreringsnummeret,
+  hvis der ikke er noget stelnr.
+
+**Solgte enheder er udeladt** (`Ja - Solgt` i BC): 6 lystårne, 35 tavler og 13
+køletrailere. Enheder spærret med `Ja - Reparation`, `Ja - Savnet`, `Ja - oprydning`
+eller `Ja - Andet` er **med** — de første er jo netop under reparation.
+
+Stavemåden er ensrettet pr. ressourcenr. BC skriver samme nummer på flere måder
+(`Køle/Frysetrailer`, `køle/frysetrailer`, `Køle/Frysetrailer HF`; `PDU 63A NR 57122`
+mod `PDU 63A`), og uden ensretning ville statistikken dele dem op. Varenummeret er
+samtidig fjernet fra modelteksten, da det står i ressourcenr.
+
+**Køle-fryse modul (06560, 60 stk.)** er ført som sin egen type, ikke som køletrailer.
+Er modulet i praksis en del af en trailer, bør de to slås sammen — ellers fordeler
+reparationsudgiften sig på to rækker.
+
+### Sådan opdateres registret
+
+Eksportér Anlægsaktiver fra BC til Excel og send filen. Der er kun brug for tre kolonner:
+`Nummer`, `Beskrivelse` og `Ressourcenr.` — resten af BC's 49 kolonner bruges ikke.
+Insert i `schema.sql` er idempotent, så en genkørsel tilføjer kun det nye.
 
 ---
 
@@ -210,7 +280,7 @@ og der er ingen nøgler i filerne.
 | Fil | Indhold |
 |---|---|
 | `index.html` | Hele appen: UI, kategoritræ, logik, Supabase-kald |
-| `data.js` | Startkatalog, 257 varer. Kun til demo |
+| `data.js` | Startkatalog (257 varer) og udstyrsregister (2.563 rækker). Kun til demo |
 | `schema.sql` | Tabeller, views og seed |
 | `.github/workflows/deploy.yml` | FTP-deploy |
 
