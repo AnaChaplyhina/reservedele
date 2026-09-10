@@ -300,6 +300,7 @@ input[type=checkbox]{width:auto;padding:0;accent-color:#008545}
   <div class="filters">
     <div class="f"><label class="lab" for="d_fra" data-i="ov_fra"></label><input id="d_fra" type="date"></div>
     <div class="f"><label class="lab" for="d_til" data-i="ov_til"></label><input id="d_til" type="date"></div>
+    <div class="f grow"><label class="lab" for="s_ud" data-i="st_sog_ud"></label><input id="s_ud" autocomplete="off"></div>
     <div class="f"><label class="lab" for="d_kat" data-i="lag_kat"></label><select id="d_kat"></select></div>
     <button class="btn alt sm" id="d_clear"></button>
     <button class="btn sm" id="csv"></button>
@@ -311,10 +312,12 @@ input[type=checkbox]{width:auto;padding:0;accent-color:#008545}
     <div class="kpi"><div class="v" id="k_vare">—</div><div class="k" data-i="k_vare"></div></div>
   </div>
   <div class="sec"><h3 data-i="st_ud"></h3><span class="hint" data-i="st_ud_h"></span></div>
-  <div class="panel flush">
+  <div id="udDetalje" hidden></div>
+  <div class="panel flush" id="udPanel">
     <table><thead><tr>
       <th data-i="t_ud"></th><th class="num" data-i="t_ind"></th><th class="num" data-i="t_kr"></th>
     </tr></thead><tbody id="rankUd"></tbody></table>
+    <div class="sml" id="udAntal" style="padding:0 0 12px"></div>
   </div>
   <div class="split" style="margin-top:0">
     <div><div class="sec"><h3 data-i="st_ofte"></h3></div>
@@ -440,6 +443,12 @@ const I18N = {
   st_h:"Statistik",st_s:"Hvad bruges mest, hvad koster mest, og hvilket udstyr æder flest penge.",
   k_kr:"Forbrug i perioden",k_ind:"Indgreb",k_top:"Dyreste udstyr",k_vare:"Dyreste reservedel",
   st_ud:"Udstyr — dyrest at holde i drift",st_ud_h:"Kroner og antal indgreb",
+  st_sog_ud:"Søg udstyr — nummer, navn eller model",
+  st_ud_alle:"enheder",st_ud_intet:"Intet udstyr matcher søgningen.",
+  ud_tilbage:"← Tilbage til listen",ud_ingen:"Ingen reservedele registreret på denne enhed endnu.",
+  ud_hele:"Hele historikken, uafhængigt af datofilteret ovenfor.",
+  ud_samlet:"Brugt i alt",ud_linjer:"Registreringer",ud_seneste:"Seneste",
+  ud_dele:"Reservedele brugt på denne enhed",ud_klik:"Klik på en enhed for at se dens historik",
   st_ofte:"Mest brugte reservedele",st_kat:"Forbrug pr. kategori",
   st_alle:"Alle registreringer",st_alle_h:"Ret eller slet en forkert linje",
   ov_fra:"Fra",ov_til:"Til",clear:"Nulstil",csv:"Eksportér CSV",
@@ -498,6 +507,12 @@ const I18N = {
   st_h:"Statystyka",st_s:"Co jest używane najczęściej, co kosztuje najwięcej i który sprzęt pożera najwięcej pieniędzy.",
   k_kr:"Zużycie w okresie",k_ind:"Naprawy",k_top:"Najdroższy sprzęt",k_vare:"Najdroższa część",
   st_ud:"Sprzęt — najdroższy w utrzymaniu",st_ud_h:"Kwoty i liczba napraw",
+  st_sog_ud:"Szukaj sprzętu — numer, nazwa lub model",
+  st_ud_alle:"jednostek",st_ud_intet:"Żadna jednostka nie pasuje.",
+  ud_tilbage:"← Powrót do listy",ud_ingen:"Brak zarejestrowanych części dla tej jednostki.",
+  ud_hele:"Pełna historia, niezależnie od filtra dat powyżej.",
+  ud_samlet:"Łącznie",ud_linjer:"Wpisy",ud_seneste:"Ostatnio",
+  ud_dele:"Części użyte do tej jednostki",ud_klik:"Kliknij jednostkę, aby zobaczyć historię",
   st_ofte:"Najczęściej używane części",st_kat:"Zużycie wg kategorii",
   st_alle:"Wszystkie wpisy",st_alle_h:"Popraw lub usuń błędny wiersz",
   ov_fra:"Od",ov_til:"Do",clear:"Wyczyść",csv:"Eksport CSV",
@@ -562,17 +577,25 @@ function matNavn(m){
 }
 const manglerDa = m => !m.type_da;
 const numre = m => [m.elnr && "EL "+m.elnr, m.ean, m.modelnr].filter(Boolean);
+/* Fælles søgning. Hvert felt tjekkes for sig — ellers "løber" et søgeord hen over
+   feltgrænsen, så fx "250" ramte et lystårn fordi "…g32" + "50120" blev til "…g32501 20".
+   Mellemrum inde i ét felt ignoreres, så "SPN4607" finder "SPN 4607 FLF PLD". */
+function rammer(felter, q){
+  const rene = felter.filter(Boolean).map(f => String(f).toLowerCase());
+  const hay = rene.join(" ");
+  const flade = rene.map(f => f.replace(/\s+/g,""));
+  return q.toLowerCase().split(/\s+/).filter(Boolean)
+    .every(tok => hay.includes(tok) || flade.some(f => f.includes(tok)));
+}
+
 /* Søgning rammer navne, ALLE numre, hyldeplads, producent og egne søgeord.
    Flere ord søges hver for sig og i vilkårlig rækkefølge: "ringkabelsko m8"
    finder "Ringkabelsko Gul M8 L35,5mm". Mellemrum ignoreres også, så
    "SPN4607" finder "SPN 4607 FLF PLD". */
 function matcher(m,q){
   if(!q) return true;
-  const hay = [m.type_da,m.type_pl,m.model,m.elnr,m.ean,m.modelnr,m.placering,m.producent,
-               matNavn(m),...arr(m.aliaser),katNavn(m.kategori)].filter(Boolean).join(" ").toLowerCase();
-  const flad = hay.replace(/\s+/g,"");
-  return q.toLowerCase().split(/\s+/).filter(Boolean)
-    .every(tok => hay.includes(tok) || flad.includes(tok));
+  return rammer([m.type_da,m.type_pl,m.model,m.elnr,m.ean,m.modelnr,m.placering,m.producent,
+                 matNavn(m),katNavn(m.kategori),...arr(m.aliaser)], q);
 }
 
 /* ==================== DEMO-DATA ==================== */
@@ -638,7 +661,7 @@ const db = {
     await sb.from("bestillinger").update(p).eq("id",id); }
 };
 
-let MATS=[], UDS=[], BEV=[], ORD=[], retter=null, aaben=null, optaeller=null, historik=null;
+let MATS=[], UDS=[], BEV=[], ORD=[], retter=null, aaben=null, optaeller=null, historik=null, udDetalje=null;
 
 /* beholdning = summen af bevægelser. Ikke et felt nogen retter i hånden. */
 const BEH = new Map();
@@ -721,13 +744,7 @@ const comboUd = Combo($("#c_ud"), {
   right: u => u.ressourcenr || u.type,
   /* rammer nummer, model, type og ressourcenr., flere ord i vilkårlig rækkefølge:
      "250 trailer" og "el16" finder begge noget */
-  match: (u,q) => {
-    if(!q) return true;
-    const hay = [u.navn,u.type,u.model,u.ressourcenr,u.serienr].filter(Boolean).join(" ").toLowerCase();
-    const flad = hay.replace(/\s+/g,"");
-    return q.toLowerCase().split(/\s+/).filter(Boolean)
-      .every(tok => hay.includes(tok) || flad.includes(tok));
-  },
+  match: (u,q) => !q || rammer([u.navn,u.type,u.model,u.ressourcenr,u.serienr], q),
   ph: () => t("ph_ud"),
   create: async navn => { const ty = (prompt(t("ny_ud_type"),"Generator")||"Andet").trim();
     const r = await db.addUd({navn, type:ty, model:"", ressourcenr:"", serienr:"", afdeling:AFDELING});
@@ -797,6 +814,7 @@ function tekster(){
   $("#save").textContent = t("save"); $("#i_save").textContent = t("mo_modtag");
   $("#d_clear").textContent = t("clear"); $("#csv").textContent = t("csv");
   $("#l_ny").textContent = t("ny_vare");
+  $("#s_ud").placeholder = t("st_sog_ud");
   $("#p_etiket").textContent = t("print_etiket");
   $("#p_optael").textContent = t("print_optael");
   $("#scanluk").textContent = t("scan_luk");
@@ -1137,11 +1155,32 @@ function tegnStat(){
   const dyr = [...varer].sort((a,b) => b.kr-a.kr)[0];
   $("#k_vare").textContent = dyr && dyr.m ? matNavn(dyr.m) : "—";
 
-  $("#rankUd").innerHTML = rank.length ? rank.map((r,i) => `<tr>
-    <td><span class="rk">${i+1}</span> ${esc(r.navn)} <span class="tag">${esc(r.type)}</span>
+  /* Rangliste. Uden søgning: kun enheder der har haft forbrug i perioden.
+     Med søgning: alle enheder der matcher — også dem uden en eneste registrering,
+     så man kan slå en maskine op og se at der intet er på den endnu. */
+  const sogUd = $("#s_ud").value.trim();
+  let liste;
+  if(sogUd){
+    liste = UDS.filter(u => rammer([u.navn,u.type,u.model,u.ressourcenr,u.serienr], sogUd))
+      .map(u => { const p = prUd[u.id];
+        return {id:u.id, navn:u.navn, type:u.type, model:u.model||"",
+                kr:p?p.kr:0, ind:p?p.d.size:0}; })
+      .sort((a,b) => b.kr - a.kr || String(a.navn).localeCompare(String(b.navn),"da"))
+      .slice(0,200);
+  } else {
+    liste = rank.slice(0,50);
+  }
+  $("#udAntal").textContent = sogUd
+    ? `${liste.length} ${t("st_ud_alle")}`
+    : (liste.length ? t("ud_klik") : "");
+  $("#rankUd").innerHTML = liste.length ? liste.map((r,i) => `<tr>
+    <td>${sogUd ? "" : `<span class="rk">${i+1}</span>`}
+      <button class="navn-knap" onclick="visUdstyr('${r.id}')">${esc(r.navn)}</button>
+      <span class="tag">${esc(r.type)}</span>
       ${r.model?`<div class="sml">${esc(r.model)}</div>`:""}</td>
-    <td class="num">${r.ind}</td><td class="num">${kr(r.kr)}</td></tr>`).join("")
-    : `<tr><td colspan="3" class="empty">${t("tom")}</td></tr>`;
+    <td class="num">${r.ind || "—"}</td><td class="num">${r.kr ? kr(r.kr) : "—"}</td></tr>`).join("")
+    : `<tr><td colspan="3" class="empty">${sogUd ? t("st_ud_intet") : t("tom")}</td></tr>`;
+  tegnUdstyrDetalje();
 
   /* Søjlediagrammet er fjernet med vilje: tabellen nedenfor viser de samme to tal
      (kroner og indgreb) uden at fylde en halv skærm. */
@@ -1399,6 +1438,74 @@ function printOptaelling(){
 $("#p_etiket").onclick = printEtiketter;
 $("#p_optael").onclick = printOptaelling;
 
+/* ---------- kort for én enhed: hvad er der brugt på den, hvornår og for hvor meget ----------
+   Viser HELE historikken, ikke kun perioden — ellers ser man kun en flig af maskinen. */
+function visUdstyr(id){ udDetalje = String(id); tegnUdstyrDetalje();
+  const el = $("#udDetalje"); if(el) el.scrollIntoView({block:"nearest", behavior:"smooth"}); }
+function lukUdstyr(){ udDetalje = null; tegnUdstyrDetalje(); }
+
+function tegnUdstyrDetalje(){
+  const boks = $("#udDetalje"), panel = $("#udPanel");
+  if(!udDetalje){ boks.hidden = true; boks.innerHTML = ""; panel.hidden = false; return; }
+  const u = byId(UDS, udDetalje);
+  if(!u){ udDetalje = null; boks.hidden = true; panel.hidden = false; return; }
+
+  const linjer = forbrugRows().filter(b => String(b.udstyr_id) === String(u.id))
+    .slice().sort((a,b) => String(b.dato).localeCompare(String(a.dato)) || (b.id-a.id));
+  const sum = linjer.reduce((s,b) => s + belob(b), 0);
+  const indgreb = new Set(linjer.map(b => b.dato)).size;
+  const seneste = linjer.length ? linjer[0].dato : "—";
+
+  /* hvilke dele er brugt mest på netop denne enhed */
+  const prVare = {};
+  linjer.forEach(b => {
+    (prVare[b.materiale_id] ||= {antal:0, kr:0});
+    prVare[b.materiale_id].antal += Math.abs(+b.antal||0);
+    prVare[b.materiale_id].kr += belob(b);
+  });
+  const dele = Object.entries(prVare).map(([mid,v]) => ({m:byId(MATS,mid), ...v}))
+    .sort((a,b) => b.kr - a.kr).slice(0,6);
+
+  panel.hidden = true; boks.hidden = false;
+  boks.innerHTML = `
+    <div class="panel">
+      <button class="txt" onclick="lukUdstyr()">${esc(t("ud_tilbage"))}</button>
+      <div style="margin:14px 0 4px;font:300 26px Raleway">${esc(u.navn)}
+        <span class="tag" style="vertical-align:6px">${esc(u.type)}</span></div>
+      <div class="sml">${esc(u.model||"")}${u.ressourcenr?" · "+esc(u.ressourcenr):""}${u.serienr?" · "+esc(u.serienr):""}</div>
+
+      <div class="kpis" style="margin:18px 0 6px">
+        <div class="kpi"><div class="v">${kr0(sum)}</div><div class="k">${esc(t("ud_samlet"))}</div></div>
+        <div class="kpi"><div class="v">${indgreb}</div><div class="k">${esc(t("t_ind"))}</div></div>
+        <div class="kpi"><div class="v">${linjer.length}</div><div class="k">${esc(t("ud_linjer"))}</div></div>
+        <div class="kpi"><div class="v" style="font-size:19px">${esc(seneste)}</div><div class="k">${esc(t("ud_seneste"))}</div></div>
+      </div>
+      <div class="sml">${esc(t("ud_hele"))}</div>
+    </div>
+
+    ${dele.length ? `<div class="sec"><h3>${esc(t("ud_dele"))}</h3></div>
+    <div class="panel flush"><table><tbody>${dele.map((d,i) => `<tr>
+      <td><span class="rk">${i+1}</span> ${esc(d.m ? matNavn(d.m) : "—")}
+        ${d.m && numre(d.m).length ? `<div class="sml mono">${esc(numre(d.m).join(" · "))}</div>` : ""}</td>
+      <td class="num">${tal(d.antal)} <span class="sml">${d.m?esc(d.m.enhed):""}</span></td>
+      <td class="num">${kr(d.kr)}</td></tr>`).join("")}</tbody></table></div>` : ""}
+
+    <div class="sec"><h3>${esc(t("st_alle"))}</h3></div>
+    <div class="panel flush"><table>
+      <thead><tr><th>${esc(t("t_dato"))}</th><th>${esc(t("t_vare"))}</th>
+        <th class="num">${esc(t("t_antal"))}</th><th class="hide-s">${esc(t("t_init"))}</th>
+        <th class="num">${esc(t("t_kr"))}</th></tr></thead>
+      <tbody>${linjer.length ? linjer.map(b => {
+        const m = byId(MATS, b.materiale_id);
+        return `<tr><td>${esc(b.dato)}</td>
+          <td>${esc(m ? matNavn(m) : "—")}${b.note?`<div class="sml">${esc(b.note)}</div>`:""}</td>
+          <td class="num">${tal(Math.abs(b.antal))} <span class="sml">${m?esc(m.enhed):""}</span></td>
+          <td class="hide-s">${esc(b.initialer||"")}</td>
+          <td class="num">${kr(belob(b))}</td></tr>`;
+      }).join("") : `<tr><td colspan="5" class="empty">${esc(t("ud_ingen"))}</td></tr>`}</tbody>
+    </table></div>`;
+}
+
 /* ==================== ADGANG + FANER ==================== */
 $("#langs").onclick = e => {
   const b = e.target.closest("button"); if(!b) return;
@@ -1424,7 +1531,9 @@ async function tjekKode(kode){
     return !error && data && data.ok === true; } catch(e){ return false; }
 }
 $("#d_fra").onchange = tegnStat; $("#d_til").onchange = tegnStat; $("#d_kat").onchange = tegnStat;
-$("#d_clear").onclick = () => { $("#d_fra").value=""; $("#d_til").value=""; $("#d_kat").value=""; tegnStat(); };
+$("#s_ud").addEventListener("input", () => { udDetalje = null; tegnStat(); });
+$("#d_clear").onclick = () => { $("#d_fra").value=""; $("#d_til").value=""; $("#d_kat").value="";
+  $("#s_ud").value=""; udDetalje = null; tegnStat(); };
 $("#csv").onclick = () => {
   const rows = forbrugRows().filter(b => iPeriode(b.dato));
   const l = [["Dato","Type","Model","EL-nr","EAN","Model-nr","Kategori","Leverandør","Antal","Enhed",
