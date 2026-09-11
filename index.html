@@ -114,6 +114,19 @@ tr:last-child td{border-bottom:0}
 .ordbox{background:var(--beige-dark);border-radius:var(--r);padding:14px 16px;font:400 13px/1.7 Raleway;white-space:pre-wrap;margin:12px 0 4px}
 input[type=checkbox]{width:auto;padding:0;accent-color:#008545}
 .medscan{display:flex;gap:8px;align-items:flex-start}
+.tilfoejrad{display:flex;gap:10px;align-items:flex-end}
+.tilfoejrad .f{flex:1}
+.tilfoejrad .btn{flex:none;width:auto;padding:11px 20px}
+.kurv{list-style:none;margin:16px 0 0;padding:0}
+.kurv li{display:flex;align-items:center;gap:12px;padding:11px 12px;background:var(--beige-dark);
+  border-radius:var(--r);margin-bottom:6px}
+.kurv .nr{font:500 12px Raleway;color:var(--muted);flex:none;min-width:14px}
+.kurv .n{flex:1;line-height:1.3;min-width:0}
+.kurv .a{font-weight:500;white-space:nowrap;flex:none}
+.kurv .x{background:none;border:0;font:300 20px/1 Raleway;color:var(--muted);
+  cursor:pointer;padding:0 2px;flex:none}
+.kurv .x:hover{color:var(--ink)}
+.kurv-tom{color:var(--muted);font-size:13px;padding:14px 2px;border-top:1px solid var(--line-soft);margin-top:14px}
 .medscan .combo,.medscan>input{flex:1;min-width:0}
 .scanbtn{flex:none;padding:11px 14px}
 .navn-knap{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
@@ -181,6 +194,15 @@ input[type=checkbox]{width:auto;padding:0;accent-color:#008545}
           <ul class="opts" role="listbox" hidden></ul>
         </div>
       </div>
+      <div class="two">
+        <div class="f"><label class="lab" for="f_dato" data-i="f_dato"></label>
+          <input id="f_dato" type="date"></div>
+        <div class="f"><label class="lab" for="f_init" data-i="f_init"></label>
+          <input id="f_init" maxlength="6" autocomplete="off"></div>
+      </div>
+
+      <hr class="hair" style="margin:6px 0 20px">
+
       <div class="f">
         <label class="lab" for="q_mat"><span data-i="f_mat"></span><span class="unit" id="u_enhed"></span></label>
         <div class="medscan">
@@ -192,18 +214,16 @@ input[type=checkbox]{width:auto;padding:0;accent-color:#008545}
         </div>
         <div class="sml" id="matinfo" style="margin-top:7px"></div>
       </div>
-      <div class="two">
-        <div class="f"><label class="lab" for="f_antal" data-i="f_antal"></label>
+      <div class="tilfoejrad">
+        <div class="f" style="margin:0"><label class="lab" for="f_antal" data-i="f_antal"></label>
           <input id="f_antal" type="number" min="0" step="any" inputmode="decimal"></div>
-        <div class="f"><label class="lab" for="f_dato" data-i="f_dato"></label>
-          <input id="f_dato" type="date"></div>
+        <button class="btn alt" id="tilfoej"></button>
       </div>
-      <div class="two">
-        <div class="f"><label class="lab" for="f_init" data-i="f_init"></label>
-          <input id="f_init" maxlength="6" autocomplete="off"></div>
-        <div class="f"><label class="lab" for="f_note" data-i="f_note"></label>
-          <input id="f_note" autocomplete="off"></div>
-      </div>
+
+      <ul class="kurv" id="kurv"></ul>
+
+      <div class="f" style="margin-top:16px"><label class="lab" for="f_note" data-i="f_note"></label>
+        <input id="f_note" autocomplete="off"></div>
       <button class="btn" id="save"></button>
     </div>
     <div>
@@ -417,10 +437,15 @@ const I18N = {
  da:{kicker:"Godik · Power "+AFDELING, apptitle:"Reservedele og lager",
   tab_reg:"Registrer",tab_lager:"Lager",tab_best:"Bestilling",tab_modt:"Modtagelse",tab_stat:"Statistik",tab_koe:"Nye varer",
   adm_ind:"Administration",adm_ud:"Luk administration",adm_kode:"Adgangskode:",adm_fejl:"Forkert kode",
-  reg_h:"Hvad har du brugt?",reg_s:"Søg på navn, EL-nummer, EAN, model-nr eller hyldeplads — listen filtrerer selv. Beholdningen falder automatisk.",
+  reg_h:"Hvad har du brugt?",reg_s:"Vælg maskinen én gang, og læg så alle delene på listen. Søg på navn, EL-nummer, EAN eller hyldeplads — eller scan stregkoden.",
+  f_tilfoej:"Tilføj",kurv_tom:"Ingen dele på listen endnu. Vælg en del og tryk Tilføj.",
+  save_en:"Registrer forbrug",save_flere:"Registrer {n} dele",
+  mangler_ud:"Vælg først hvilket udstyr det drejer sig om",
+  mangler_del:"Vælg en del og skriv et antal",
+  mangler_kurv:"Læg mindst én del på listen",
+  gemt_flere:"{n} dele registreret på {u}",
   f_ud:"Brugt til",f_mat:"Reservedel",f_antal:"Antal",f_dato:"Dato",f_init:"Initialer",f_note:"Note",
-  ph_ud:"Søg udstyr — tavle, generator, lystårn…",ph_mat:"Navn, EL-nr, EAN eller hylde…",
-  save:"Registrer forbrug",reg_recent:"Senest registreret",
+  ph_ud:"Søg udstyr — tavle, generator, lystårn…",ph_mat:"Navn, EL-nr, EAN eller hylde…",reg_recent:"Senest registreret",
   opret:"Opret",ingen:"Ingen træf",gemt:"Registreret",mangler:"Udfyld udstyr, reservedel og antal",
   ny_ud_type:"Hvilken type udstyr? (tavle / generator / lystårn / køletrailer / andet)",
   lag_h:"Lager",lag_s:"Søg og se hvor mange der er tilbage.",
@@ -481,10 +506,15 @@ const I18N = {
  pl:{kicker:"Godik · Power "+AFDELING, apptitle:"Części zamienne i magazyn",
   tab_reg:"Rejestruj",tab_lager:"Magazyn",tab_best:"Zamówienia",tab_modt:"Przyjęcie",tab_stat:"Statystyka",tab_koe:"Nowe pozycje",
   adm_ind:"Administracja",adm_ud:"Zamknij administrację",adm_kode:"Hasło:",adm_fejl:"Błędne hasło",
-  reg_h:"Czego użyłeś?",reg_s:"Szukaj po nazwie, numerze EL, EAN, numerze modelu lub miejscu na półce. Stan magazynu zmniejszy się automatycznie.",
+  reg_h:"Czego użyłeś?",reg_s:"Wybierz maszynę raz, a potem dodaj wszystkie części na listę. Szukaj po nazwie, numerze EL, EAN lub półce — albo zeskanuj kod.",
+  f_tilfoej:"Dodaj",kurv_tom:"Brak części na liście. Wybierz część i naciśnij Dodaj.",
+  save_en:"Zarejestruj zużycie",save_flere:"Zarejestruj {n} części",
+  mangler_ud:"Najpierw wybierz sprzęt",
+  mangler_del:"Wybierz część i podaj ilość",
+  mangler_kurv:"Dodaj przynajmniej jedną część",
+  gemt_flere:"{n} części zarejestrowano na {u}",
   f_ud:"Użyto do",f_mat:"Część",f_antal:"Ilość",f_dato:"Data",f_init:"Inicjały",f_note:"Notatka",
-  ph_ud:"Szukaj sprzętu — rozdzielnica, generator, wieża…",ph_mat:"Nazwa, nr EL, EAN lub półka…",
-  save:"Zarejestruj zużycie",reg_recent:"Ostatnio zarejestrowane",
+  ph_ud:"Szukaj sprzętu — rozdzielnica, generator, wieża…",ph_mat:"Nazwa, nr EL, EAN lub półka…",reg_recent:"Ostatnio zarejestrowane",
   opret:"Dodaj",ingen:"Brak wyników",gemt:"Zarejestrowano",mangler:"Uzupełnij sprzęt, część i ilość",
   ny_ud_type:"Jaki typ sprzętu? (rozdzielnica / generator / wieża świetlna / chłodnia / inne)",
   lag_h:"Magazyn",lag_s:"Szukaj i sprawdź, ile zostało.",
@@ -774,7 +804,8 @@ const comboMat = Combo($("#c_mat"), matBase({
     const ny = await db.addMat(r); MATS = await db.mats(); tegnKoe(); return ny;
   },
   onPick: id => { const m = byId(MATS,id);
-    $("#u_enhed").textContent = m ? " "+m.enhed : ""; visMatInfo($("#matinfo"), id); }
+    $("#u_enhed").textContent = m ? " "+m.enhed : ""; visMatInfo($("#matinfo"), id);
+    if(m) setTimeout(() => $("#f_antal").focus(), 30); }
 }));
 const comboInd = Combo($("#c_ind"), matBase({
   create: async navn => {          /* admin må også oprette en vare der ikke findes */
@@ -811,7 +842,8 @@ function tekster(){
   document.documentElement.lang = lang;
   document.querySelectorAll("[data-i]").forEach(e => e.textContent = t(e.dataset.i));
   ["reg","lager","best","modt","stat","koe"].forEach(k => $(`nav [data-t=${k}]`).textContent = t("tab_"+k));
-  $("#save").textContent = t("save"); $("#i_save").textContent = t("mo_modtag");
+  $("#i_save").textContent = t("mo_modtag");
+  $("#tilfoej").textContent = t("f_tilfoej");
   $("#d_clear").textContent = t("clear"); $("#csv").textContent = t("csv");
   $("#l_ny").textContent = t("ny_vare");
   $("#s_ud").placeholder = t("st_sog_ud");
@@ -840,7 +872,7 @@ function tekster(){
 }
 function alt(){
   genberegn();
-  tegnSenest(); tegnLager(); tegnBest(); tegnModt(); tegnStat(); tegnKoe();
+  tegnKurv(); tegnSenest(); tegnLager(); tegnBest(); tegnModt(); tegnStat(); tegnKoe();
 }
 function roller(){
   ["best","modt","stat","koe"].forEach(k => $(`nav [data-t=${k}]`).hidden = !admin);
@@ -853,7 +885,46 @@ function roller(){
   tegnLager();
 }
 
-/* ==================== REGISTRER ==================== */
+/* ==================== REGISTRER ====================
+   Én reparation = ét udstyr, én dato, ét sæt initialer — og så alle de dele
+   der blev brugt. Teknikeren vælger maskinen én gang og lægger delene på
+   listen. Skal han vælge maskine og dato forfra for hver eneste del,
+   registrerer han den første og dropper resten. */
+let kurv = [];
+
+function tegnKurv(){
+  const ul = $("#kurv");
+  ul.innerHTML = kurv.length ? kurv.map((l,i) => {
+    const m = byId(MATS, l.materiale_id);
+    return `<li>
+      <span class="nr">${i+1}</span>
+      <span class="n">${esc(m ? matNavn(m) : "—")}
+        ${m && numre(m).length ? `<div class="sml mono">${esc(numre(m)[0])}</div>` : ""}</span>
+      <span class="a">${tal(l.antal)} ${m ? esc(m.enhed) : ""}</span>
+      <button class="x" onclick="fjernFraKurv(${i})" aria-label="fjern">×</button>
+    </li>`;
+  }).join("") : `<li class="kurv-tom" style="background:none;padding-left:2px">${esc(t("kurv_tom"))}</li>`;
+  $("#save").textContent = kurv.length > 1
+    ? t("save_flere").replace("{n}", kurv.length)
+    : t("save_en");
+}
+function fjernFraKurv(i){ kurv.splice(i,1); tegnKurv(); }
+
+function tilfoejTilKurv(){
+  if(!comboUd.id){ toast(t("mangler_ud")); $("#q_ud").focus(); return; }
+  const a = parseFloat($("#f_antal").value);
+  if(!comboMat.id || !(a > 0)){ toast(t("mangler_del")); return; }
+  /* samme del to gange i samme reparation lægges sammen i stedet for at give to linjer */
+  const findes = kurv.find(l => String(l.materiale_id) === String(comboMat.id));
+  if(findes) findes.antal += a;
+  else kurv.push({materiale_id: comboMat.id, antal: a});
+  comboMat.ryd(); $("#f_antal").value = "";
+  $("#u_enhed").textContent = ""; $("#matinfo").innerHTML = "";
+  tegnKurv(); $("#q_mat").focus();          /* klar til næste del eller næste scanning */
+}
+$("#tilfoej").onclick = tilfoejTilKurv;
+$("#f_antal").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); tilfoejTilKurv(); } });
+
 function tegnSenest(){
   const r = forbrugRows().slice().sort((a,b) => (b.id-a.id)).slice(0,8);
   $("#recent").innerHTML = r.length ? r.map(b => {
@@ -864,16 +935,26 @@ function tegnSenest(){
   }).join("") : `<div class="empty">—</div>`;
 }
 $("#save").onclick = async () => {
-  const a = parseFloat($("#f_antal").value);
-  if(!comboUd.id || !comboMat.id || !(a > 0)){ toast(t("mangler")); return; }
-  const m = byId(MATS, comboMat.id);
-  await db.addBev({materiale_id:comboMat.id, antal:-a, art:"forbrug", udstyr_id:comboUd.id,
-    dato:$("#f_dato").value || idag(), initialer:$("#f_init").value.trim().toUpperCase(),
-    note:$("#f_note").value.trim(), pris:(m?m.pris:null), afdeling:AFDELING});
+  /* en del der står klar i felterne, men ikke er lagt på listen, tages med */
+  if(comboMat.id && parseFloat($("#f_antal").value) > 0) tilfoejTilKurv();
+  if(!comboUd.id){ toast(t("mangler_ud")); return; }
+  if(!kurv.length){ toast(t("mangler_kurv")); return; }
+  const dato = $("#f_dato").value || idag();
+  const ini  = $("#f_init").value.trim().toUpperCase();
+  const note = $("#f_note").value.trim();
+  const u    = byId(UDS, comboUd.id);
+  for(const l of kurv){
+    const m = byId(MATS, l.materiale_id);
+    await db.addBev({materiale_id:l.materiale_id, antal:-l.antal, art:"forbrug",
+      udstyr_id:comboUd.id, dato, initialer:ini, note, pris:(m?m.pris:null), afdeling:AFDELING});
+  }
+  const antal = kurv.length;
   BEV = await db.bev();
-  comboMat.ryd(); $("#f_antal").value=""; $("#f_note").value="";
-  $("#u_enhed").textContent=""; $("#matinfo").innerHTML="";
-  alt(); toast(t("gemt"));
+  kurv = []; $("#f_note").value = "";
+  tegnKurv(); alt();
+  toast(antal > 1
+    ? t("gemt_flere").replace("{n}", antal).replace("{u}", u ? u.navn : "")
+    : t("gemt"));
 };
 
 /* ==================== LAGER ==================== */
